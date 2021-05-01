@@ -1,0 +1,777 @@
+
+
+\documentclass{article}
+
+
+\input{/home/bono/Documents/mybib/preamble}
+
+
+\usepackage[hyphens,spaces,obeyspaces]{url} % show urls in bibliography
+\usepackage{rotating}
+
+
+\usepackage[pagewise, mathlines]{lineno} %  displaymath  
+
+\renewcommand\linenumberfont{\normalfont\small}  
+\setlength\linenumbersep{55pt}
+
+
+
+
+\begin{document}
+
+
+\title{Supplementary Material: Survival meta-analysis with constrained disclosure of individual person data (IPD)}
+
+
+ \author[*]{Federico Bonofiglio} 
+
+ 
+ \affil[*]{\small{Email: } }
+
+
+ \date{}
+
+
+\maketitle
+
+
+\tableofcontents
+\listoffigures
+\listoftables
+
+
+<<label = loaddata, echo = false, results = hide>>=
+
+
+########################################
+
+
+
+########################################
+
+library(xtable)
+
+tab_thres <- as.character(0.05)
+
+torep <- readRDS("all_tabs.rds")
+
+tab1a <- torep$Tab_m1a$latex; tab1a$Est. <- as.factor(tab1a$Est.)
+tab1b <- torep$Tab_m1b$latex; tab1b$Est. <- as.factor(tab1b$Est.)
+tab1c <- torep$Tab_m1c$latex; tab1c$Est. <- as.factor(tab1c$Est.)
+tab1d <- torep$Tab_m1d$latex; tab1d$Est. <- as.factor(tab1d$Est.)
+tab1e <- torep$Tab_m1e$latex; tab1e$Est. <- as.factor(tab1e$Est.)
+tab1f <- torep$Tab_m1f$latex; tab1f$Est. <- as.factor(tab1f$Est.)
+tab1g <- torep$Tab_m1g$latex; tab1g$Est. <- as.factor(tab1g$Est.)
+tab1h <- torep$Tab_m1h$latex; tab1h$Est. <- as.factor(tab1h$Est.)
+## naive f = identity forall centers --> NOT SHOW: just mention
+tab1b3 <- torep$Tab_m1b_res$latex; tab1b3$Est. <- as.factor(tab1b3$Est.) 
+
+table2 <- torep$Tab_2_subg$latex
+gastadj <- torep$gastadj
+descr1 <- torep$descr1
+mom <- torep$mom_dat
+corr <- torep$corr_dat
+
+newlab <- c( paste0("\\textcolor{red}{",levels(mom$data)[1],"}"), paste0("\\textcolor{magenta}{",levels(mom$data)[c(6:7)],"}"))
+
+mom$data <- factor( mom$data,  labels = c(newlab[1], levels(mom$data)[-c(1, 6:7)], newlab[2:3] ) )
+
+rownames(table2)[c(1, 6:7)] <- newlab
+
+sns <- summary(as.numeric(table(gastadj$trialID)))
+
+torepsim <- readRDS("torep_simul.rds") 
+torepsim2 <- readRDS("torep_simul_2.rds") 
+torepsim3 <- readRDS("torep_simul_3.rds")
+torepsim4 <- readRDS("torep_simul_4.rds")
+tab5 <- torepsim4$tab_ph_sim_latex
+
+
+km_synops <- torep$km_synops$latex
+regr_synops <- torep$regr_synops$latex
+tabmain <- cbind(regr_synops, km_synops[, -c(1, 2)])
+tabmain <- tabmain[, -4]
+show <- c(2, 5, 6, 7, 16, 17, 18, 26:28)
+tabmain <- tabmain[-show, ]
+tabmain$out <- as.factor(tabmain$out)
+levels(tabmain$out)[2] <- "\\parbox[t]{2mm}{\\multirow{18}{*}{\\rotatebox[origin=c]{90}{Death}}}"
+
+@ 
+
+
+
+\section{Additional results}
+
+
+<<table_keyIPDsum, results = tex, echo=FALSE>>=
+
+print(xtable(descr1, digits = rep(0, dim(descr1)[2] + 1  ),
+             align = c("l", rep("l", dim(descr1)[2] ) ),  caption = "GASTRIC study data: Average (standard deviation; min/max) of the key IPD summaries across the 14 study-centers for variable treatment-allocation (trt), time-to-death (timeT), death-indicator (statusT), time-to-relapse (timeS), and relapse-indicator (statusS). Note high Pearson correlations between all variables except with trt (last five lines).", label = "table:0"),
+      include.rownames = TRUE, 
+      include.colnames = FALSE, 
+      hline.after = NULL ,
+      table.placement = "h", 
+      floating=TRUE,
+      floating.environment = "sidewaystable",
+##      size = "\\setlength{\\tabcolsep}{12pt}",
+        size = "small",
+            caption.placement="top",
+            sanitize.text.function = force, 
+      add.to.row = list(pos = list( 0, 5, nrow(descr1) ),
+
+   command =  c(  " \\toprule 
+ &  Mean & Square-root variance & Skewness & Kurtosis & Pearson correlation  \\\\[0.2 cm] \\midrule ", "[0.4 cm]", "\\bottomrule"
+ )   ) )
+
+
+@ 
+
+
+% The GC can generally well reproduce IPD moments (Table~\ref{table:1}). However, the GC using fewer moments (GC few. mom.) produces higher skewness and kurtosis values in the time variables, indicating mis-placed probability mass away from the mean and more toward the tails (also see Figure~\ref{fig:0}). 
+
+
+
+<<table_mom, results = tex, echo=FALSE>>=
+
+print(xtable(mom, digits = rep(0, dim(mom)[2] + 1  ),
+             align = rep("l", dim(mom)[2]+1 ),  caption = "Empirical moment (Mean, Square-rooted variance, Skewness, Kurtosis) values for variable trt, timeT, statusT, timeS, statusS, computed on pooled data from a) original GASTRIC-study (Orig. IPD), b) bootstrap on pooled IPD (IPD boot.), c) bootstrap on distributed IPD (Dist. boot.), d) classification and regression trees (CART), e) variational auto encoder (VAE), f) Gaussian copula with few (GC few. mom.) and g) all moments (GC all mom.). All results except Orig. IPD are average values over 300 data realizations. The difference to the Orig. IPD value is taken. Any value with difference greater than a given threshold (in absolute value) is boldfaced. Thresholds for Skewness and Kurtosis is 0.5 (0.1 for Mean and Variance of binary variables trt, statusT, statusS, and 10 otherwise) .", label = "table:1"),
+      include.rownames = FALSE, 
+      include.colnames = FALSE, 
+      hline.after = NULL ,
+      table.placement = "h", 
+      floating=TRUE,
+            caption.placement="top",
+            sanitize.text.function = force, 
+      add.to.row = list(pos = list( 0, 7, 14, 21, nrow(mom) ),
+
+   command =  c(  " \\toprule 
+ &   & trt & timeT & statusT & timeS & statusS  \\\\[0.2 cm] \\midrule ", rep("[0.2 cm]", 3),  "\\bottomrule"
+ )   ) )
+
+
+@ 
+
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[height = 16 cm, width = 16 cm]{hist_gast.png}
+  \caption{Empirical marginal density of time-to-death and time-to-relapse. Comparison between pooled GASTRIC-study data (Orig. IPD) and pseudodata generated via proposed Gaussian copula (GC) using few (GC few. mom.) versus all moments (GC all mom.), stratified by treatment-allocation and health-status indicators. X-axis is cut at 150 months for graphical clarity.}
+  \label{fig:0}
+\end{figure} 
+
+
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[height = 17 cm, width = 17 cm]{joint_gast.png}
+  \caption{Empirical relationship between time-to-death and time-to-relapse. Comparison between pooled GASTRIC-study data (Orig. IPD) and pseudodata generated via proposed Gaussian copula (GC) using few (GC few. mom.) versus all moments (GC all mom.), stratified by treatment-allocation and health-status indicators. Both axes are cut at 600 months for graphical clarity.}
+  \label{fig:0_joint}
+\end{figure} 
+
+
+
+<<table_corr, results = tex, echo=FALSE>>=
+
+print(xtable(corr, digits = rep(0, dim(corr)[2] + 1  ),
+             align = c("l", rep("c", dim(corr)[2] )),  caption = "Empirical Pearson correlations between variable trt, timeT, statusT, timeS, statusS, computed on pooled data from a) original GASTRIC data (Orig. IPD), b) bootstrap on pooled IPD (IPD boot.), c) bootstrap on distributed IPD (Dist. boot.), d) classification and regression trees (CART), e) variational auto encoder (VAE), f) Gaussian copula with few (GC few. mom.) and g) all moments (GC all mom.). All results except Orig. IPD are average values over 300 data realizations. The difference to the Orig. IPD value is taken. Any value with difference greater than 0.1 (in absolute value) is boldfaced.", label = "table:2"),
+      include.rownames = TRUE, 
+      include.colnames = FALSE, 
+      hline.after = NULL ,
+      table.placement = "h", 
+      floating=TRUE,
+            caption.placement="top",
+            sanitize.text.function = force, 
+      add.to.row = list(pos = list( 0, nrow(corr) ),
+
+   command =  c(  "\\toprule &&&&&& \\multicolumn{2}{c}{\\textcolor{magenta}{Gaussian copula}}  \\\\ [0.3 cm]  
+   & \\textcolor{red}{IPD Orig.} & IPD boot. & Dist. boot. & CART & VAE & \\textcolor{magenta}{Few. mom.} & \\textcolor{magenta}{All mom.} \\\\ [0.2 cm] ",  "\\bottomrule"   )   ) )
+
+
+@ 
+
+
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[height = 14 cm, width = 15 cm]{km_plot_bootDist_CIs.png}
+  \caption{Overall survival (OS) and disease free survival (DFS) probability in control and treatment arm. Comparison of Greenwood-based CIs of the IPD Kaplan-Meier (KM) estimate computed from pooled a) original GASTRIC-study data (Orig. IPD), b) original data resampled via distributed bootstrap (Dist. Boot.).}
+  \label{fig:1}
+\end{figure} 
+
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[height = 14 cm, width = 15 cm]{km_plot_meta_CIs.png}
+  \caption{Overall survival (OS) and disease free survival (DFS) probability in control and treatment arm. Comparison of the Greenwood-based CIs of the IPD Kaplan-Meier (KM) estimate (Orig. IPD) to Delta-method-based CIs of the parametric survival curve computed on the (fixed-effect) meta-analytic estimate of a constant hazard (Meta an.).}
+  \label{fig:2}
+\end{figure} 
+
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[height = 14 cm, width = 15 cm]{km_plot_GCjohn_CIs.png}
+  \caption{Overall survival (OS) and disease free survival (DFS) probability in control and treatment arm. Comparison of Greenwood-based CIs of the IPD Kaplan-Meier (KM) estimate computed from pooled a) original GASTRIC-study data (Orig. IPD), b) pseudodata generated via proposed Gaussian copula (GC) using all moments (all mom.).}
+  \label{fig:3}
+\end{figure} 
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[height = 14 cm, width = 15 cm]{km_plot_synpd_CIs.png}
+  \caption{Overall survival (OS) and disease free survival (DFS) probability in control and treatment arm. Comparison of Greenwood-based CIs of the IPD Kaplan-Meier (KM) estimate computed from pooled a) original GASTRIC-study data (Orig. IPD), b) pseudodata generated via classification and regression trees (CART).}
+  \label{fig:4}
+\end{figure} 
+
+
+
+
+<<table_1a, results = tex, echo=FALSE>>=
+
+levels(tab1a$Est.) <- c("$\\beta$", "df", "$L$", "$p$", "SD", "$z_\\beta$")
+
+print(xtable(tab1a, digits = rep(0, dim(tab1a)[2] + 1  ),
+             align = c(rep("c", 6 ), "|c", rep("c", 4) ),  caption = paste0("Cox regression stratified by center (model 1.a of (Table~\\ref{table:0} -- main manuscript) ran on pooled data from a) original GASTRIC-study data (Orig. IPD -- gold standard), b) bootstrap on pooled IPD (IPD boot.), c) bootstrap on distributed IPD (Dist. boot.), d) classification and regression trees (CART), e) variational auto encoder (VAE), f) Gaussian copula (GC) using few (fm) versus all moments (am). All results, except Orig. IPD, are average values over 300 data realizations. Results from standard inverse-weighting fixed-effect meta-analysis (Meta an.) on shared HR estimates are given. Results diverging from Orig. IPD by at least ", tab_thres," (in absolute value) are boldfaced. Reported statistics are estimates for the log HR ($\\beta$) of the effect of adjuvant chemotherapy vs surgery on outcome Death or Disease (relapse), log HR standard deviation (SD), z-test for $\\beta$ ($z_\\beta$), p-value ($p$), model likelihood ($L$), degree of freedom (df)."), label = "table:3a"),
+      include.rownames = FALSE, 
+      include.colnames = FALSE, 
+      hline.after = NULL ,
+      table.placement = "h", 
+      floating=TRUE,
+            caption.placement="top",
+            sanitize.text.function = force, 
+      add.to.row = list(pos = list( 0, 6, nrow(tab1a) ),
+
+   command =  c(  " \\toprule  &  & \\textcolor{red}{Orig. IPD} & IPD boot. & Dist. boot. & CART & VAE & GC fm & GC am & Meta an.  \\\\[0.2 cm] \\midrule ", "[0.4 cm]", "\\bottomrule"
+ )   ) )
+
+@ 
+
+
+
+<<table_1b, results = tex, echo=FALSE>>=
+
+levels(tab1b$Est.) <- c("$\\beta$", "$\\gamma$", "$p$", "$p_\\gamma$", "SD$_\\beta$", "SD$_\\gamma$", "$z_\\beta$", "$z_\\gamma$" )
+
+
+
+print(xtable(tab1b, digits = rep(0, dim(tab1b)[2] + 1  ),
+             align = c(rep("c", 6 ), "|c", rep("c", 4) ),  caption = paste0("PHs assumption assessment of stratified Cox regression (model 1.b of Table~\\ref{table:0} -- main manuscript) made on pooled data from a) original GASTRIC-study data (Orig. IPD -- gold standard), b) bootstrap on pooled IPD (IPD boot.), c) bootstrap on distributed IPD (Dist. boot.), d) classification and regression trees (CART), e) variational auto encoder (VAE), f) Gaussian copula (GC) using few (fm) versus all moments (am). All results, except Orig. IPD, are average values over 300 data realizations. Results from standard inverse-weighting fixed-effect meta-analysis (Meta an.) on shared treatment-time interaction estimates are given. Results diverging from Orig. IPD by at least ", tab_thres," (in absolute value) are boldfaced. Reported statistics are estimates for the log HR ($\\beta$) of the effect of adjuvant chemotherapy vs surgery on outcome Death or Disease (relapse), treatment-time interaction effect ($\\gamma$) using exp(time) based on data graphical inspection (for Meta an. time-transform can be any of log, exp, or identity, based on local data inspection), standard deviation (SD), z-test ($z$), and p-value ($p$)."), label = "table:3b"),
+      include.rownames = FALSE, 
+      include.colnames = FALSE, 
+      hline.after = NULL ,
+      table.placement = "h", 
+      floating=TRUE,
+            caption.placement="top",
+            sanitize.text.function = force, 
+      add.to.row = list(pos = list( 0, 8, nrow(tab1b) ),
+
+   command =  c(  " \\toprule   &  & \\textcolor{red}{Orig. IPD} & IPD boot. & Dist. boot. & CART & VAE & GC fm & GC am & Meta an.  \\\\[0.2 cm] \\midrule ", "[0.4 cm]", "\\bottomrule"
+ )   ) )
+
+
+@ 
+
+
+
+<<table_1c, results = tex, echo=FALSE>>=
+
+levels(tab1c$Est.) <- levels(tab1a$Est.)
+
+print(xtable(tab1c, digits = rep(0, dim(tab1c)[2] + 1  ),
+             align = c(rep("c", 6 ), "|c", rep("c", 3) ),  caption = paste0("Marginal Cox regression (model 1.c of Table~\\ref{table:0} -- main manuscript) ran on pooled data from a) original GASTRIC-study data (Orig. IPD -- gold standard), b) bootstrap on pooled IPD (IPD boot.), c) bootstrap on distributed IPD (Dist. boot.), d) classification and regression trees (CART), e) variational auto encoder (VAE), f) Gaussian copula (GC) using few (fm) versus all moments (am). All results, except Orig. IPD, are average values over 300 data realizations. Results diverging from Orig. IPD by at least ", tab_thres," (in absolute value) are boldfaced. Reported statistics are estimates for the log HR ($\\beta$) of the effect of adjuvant chemotherapy vs surgery on outcome Death or Disease (relapse), log HR standard deviation (SD), z-test for $\\beta$ ($z_\\beta$), p-value ($p$), model likelihood ($L$), degree of freedom (df)."), label = "table:3c"),
+      include.rownames = FALSE, 
+      include.colnames = FALSE, 
+      hline.after = NULL ,
+      table.placement = "h", 
+      floating=TRUE,
+            caption.placement="top",
+            sanitize.text.function = force, 
+      add.to.row = list(pos = list( 0, 6, nrow(tab1c) ),
+
+   command =  c(  " \\toprule  &  & \\textcolor{red}{Orig. IPD} & IPD boot. & Dist. boot. & CART & VAE & GC fm & GC am \\\\[0.2 cm] \\midrule ", "[0.4 cm]", "\\bottomrule"
+ )   ) )
+
+
+@ 
+
+
+
+<<table_1d, results = tex, echo=FALSE>>=
+
+levels(tab1d$Est.) <- c("$\\chi^2_{\\text{1.c}}$", "$\\beta$", "MHR>$\\beta$", "df", "$L$", "MHR", "$p$", "$p$", "SD", "$\\xi$", "$z_\\beta$" )
+
+print(xtable(tab1d, digits = rep(0, dim(tab1d)[2] + 1  ),
+             align = c(rep("c", 6 ), "|c", rep("c", 3) ),  caption = paste0("Center effect assessment (model 1.d of Table~\\ref{table:0} -- main manuscript) made on pooled data from a) original GASTRIC-study data (Orig. IPD -- gold standard), b) bootstrap on pooled IPD (IPD boot.), c) bootstrap on distributed IPD (Dist. boot.), d) classification and regression trees (CART), e) variational auto encoder (VAE), f) Gaussian copula (GC) using few (fm) versus all moments (am). All results, except Orig. IPD, are average values over 300 data realizations. Results diverging from Orig. IPD by at least ", tab_thres," (in absolute value) are boldfaced. Reported statistics are estimates for the log HR ($\\beta$) of the effect of adjuvant chemotherapy vs surgery on outcome Death or Disease (relapse), log HR standard deviation (SD), z-test for $\\beta$ ($z_\\beta$), log frailty SD ($\\xi$) -- between-center heterogeneity -- median HR (MHR) adjusted for treatment effect, Boolean (0/1) for center-effect greater than treatment-effect (MHR>$\\beta$), model likelihood ($L$), Chi-test for center-effect ($\\chi^2_{\\text{1.c}}$) -- ratio of current $L$ to $L$ from model 1.c, degree of freedom (df), and p-value ($p$)."), label = "table:3d"),
+      include.rownames = FALSE, 
+      include.colnames = FALSE, 
+      hline.after = NULL ,
+      table.placement = "h", 
+      floating=TRUE,
+            caption.placement="top",
+            sanitize.text.function = force, 
+      add.to.row = list(pos = list( 0, 12, nrow(tab1d) ),
+
+   command =  c(  " \\toprule  &  & \\textcolor{red}{Orig. IPD} & IPD boot. & Dist. boot. & CART & VAE & GC fm & GC am \\\\[0.2 cm] \\midrule ", "[0.4 cm]", "\\bottomrule"
+ )   ) )
+
+
+@ 
+
+
+\begin{sidewaysfigure}
+  \centering
+  \includegraphics[height = 15 cm, width = 22 cm]{KM_trt_centers_plot_death.pdf}
+  \caption{GASTRIC study data: center-specific Kaplan-Meiier estimate for outcome death in treatment group.}
+  \label{fig:5}
+\end{sidewaysfigure}
+
+
+
+<<table_1e, results = tex, echo=FALSE>>=
+
+levels(tab1e$Est.) <- c("df", "$L$", "MHR", "$\\xi$" )
+
+print(xtable(tab1e, digits = rep(0, dim(tab1e)[2] + 1  ),
+             align = c(rep("c", 6 ), "|c", rep("c", 3) ),  caption = paste0("Null Cox model on outcome Death or Disease (model 1.e of Table~\\ref{table:0} -- main manuscript) ran on pooled data from a) original GASTRIC-study data (Orig. IPD -- gold standard), b) bootstrap on pooled IPD (IPD boot.), c) bootstrap on distributed IPD (Dist. boot.), d) classification and regression trees (CART), e) variational auto encoder (VAE), f) Gaussian copula (GC) using few (fm) versus all moments (am). All results, except Orig. IPD, are average values over 300 data realizations. Results diverging from Orig. IPD by at least ", tab_thres," (in absolute value) are boldfaced. Reported statistics are estimates for the log frailty SD ($\\xi$) -- between-center heterogeneity -- median HR (MHR), model likelihood ($L$), degree of freedom (df)."), label = "table:3e"),
+      include.rownames = FALSE, 
+      include.colnames = FALSE, 
+      hline.after = NULL ,
+      table.placement = "h", 
+      floating=TRUE,
+            caption.placement="top",
+            sanitize.text.function = force, 
+      add.to.row = list(pos = list( 0, 4, nrow(tab1e) ),
+
+   command =  c(  " \\toprule  &  & \\textcolor{red}{Orig. IPD} & IPD boot. & Dist. boot. & CART & VAE & GC fm & GC am \\\\[0.2 cm] \\midrule ", "[0.4 cm]", "\\bottomrule"
+ )   ) )
+
+@ 
+
+
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[height = 17 cm, width = 15 cm]{forestplots.png}
+  \caption{GASTRIC study data: standard meta-analysis of shared HRs on death (upper plot) and relapse.}
+  \label{fig:6}
+\end{figure} 
+
+
+<<table_1f, results = tex, echo=FALSE>>=
+
+levels(tab1f$Est.) <- c("$\\chi^2_{\\text{1.a}}$", "$\\beta$", "df", "$L$", "$p$", "$p$", "SD", "$\\tau$", "$z_\\beta$")
+tab1f$randMA <- as.character(tab1f$randMA)
+tab1f$randMA[tab1f$Est. == "SD"] <- paste0(tab1f$randMA[tab1f$Est. == "SD"], "$^\\dagger$")
+tab1f$randMA <- as.factor(tab1f$randMA)
+
+print(xtable(tab1f, digits = rep(0, dim(tab1f)[2] + 1  ),
+             align = c(rep("c", 6 ), "|c", rep("c", 4) ),  caption = paste0("Random treatment-effect Cox regression (model 1.f of (Table~\\ref{table:0} -- main manuscript) ran on pooled data from a) original GASTRIC-study data (Orig. IPD -- gold standard), b) bootstrap on pooled IPD (IPD boot.), c) bootstrap on distributed IPD (Dist. boot.), d) classification and regression trees (CART), e) variational auto encoder (VAE), f) Gaussian copula (GC) using few (fm) versus all moments (am). All results, except Orig. IPD, are average values over 300 data realizations. Results from standard inverse-weighting random-effect meta-analysis (Meta an.) on shared HR estimates are given. Reported statistics are estimates for the log HR ($\\beta$) of the effect of adjuvant chemotherapy vs surgery on outcome Death or Disease (relapse), log HR standard deviation (SD), z-test for $\\beta$ ($z_\\beta$), log random-effect SD ($\\tau$) -- between-center HR heterogeneity -- model likelihood ($L$), Chi-test for random-effect ($\\chi^2_{\\text{1.a}}$) -- ratio of current $L$ to $L$ from model 1.a (or Q-statistic for Meta an.), degree of freedom (df), and p-value ($p$). Results diverging from Orig. IPD by at least ", tab_thres," (in absolute value) are boldfaced (except for Meta an. Chi quantile which is not comparable). $\\dagger$ SD already includes $\\tau$ contribution."), label = "table:3f"),
+      include.rownames = FALSE, 
+      include.colnames = FALSE, 
+      hline.after = NULL ,
+      table.placement = "h", 
+      floating=TRUE,
+            caption.placement="top",
+            sanitize.text.function = force, 
+      add.to.row = list(pos = list( 0, 10, nrow(tab1f) ),
+
+   command =  c(  " \\toprule  &  & \\textcolor{red}{Orig. IPD} & IPD boot. & Dist. boot. & CART & VAE & GC fm & GC am & Meta an.  \\\\[0.2 cm] \\midrule ", "[0.4 cm]", "\\bottomrule"
+ )   ) )
+
+@ 
+
+
+
+<<table_1g, results = tex, echo=FALSE>>=
+
+levels(tab1g$Est.) <- c("$\\chi^2_{\\text{1.f}}$", "$\\beta$", "df", "$L$", "MSE", "$p$", "$p$", "$\\rho$", "SD", "$\\tau$", "$\\xi$", "$z_\\beta$")
+
+print(xtable(tab1g, digits = rep(0, dim(tab1g)[2] + 1  ),
+             align = c(rep("c", 6 ), "|c", rep("c", 3) ),  caption = paste0("Multi-level Cox regression (model 1.g of Table~\\ref{table:0} -- main manuscript) ran on pooled data from a) original GASTRIC-study data (Orig. IPD -- gold standard), b) bootstrap on pooled IPD (IPD boot.), c) bootstrap on distributed IPD (Dist. boot.), d) classification and regression trees (CART), e) variational auto encoder (VAE), f) Gaussian copula (GC) using few (fm) versus all moments (am). All results, except Orig. IPD, are average values over 300 data realizations. Results diverging from Orig. IPD by at least ", tab_thres," (in absolute value) are boldfaced. Reported statistics are estimates for the log HR ($\\beta$) of the effect of adjuvant chemotherapy vs surgery on outcome Death or Disease (relapse), log HR standard deviation (SD), z-test for $\\beta$ ($z_\\beta$), log frailty SD ($\\xi$), log random-effect SD ($\\tau$), correlation between frailty and random-effect ($\\rho$), Monte Carlo mean square error (MSE) of $\\rho$, model likelihood ($L$), model fit Chi-test ($\\chi^2_{\\text{1.f}}$) -- ratio of current $L$ to $L$ from model 1.f, degree of freedom (df), and p-value ($p$)."), label = "table:3g"),
+      include.rownames = FALSE, 
+      include.colnames = FALSE, 
+      hline.after = NULL ,
+      table.placement = "h", 
+      floating=TRUE,
+            caption.placement="top",
+            sanitize.text.function = force, 
+      add.to.row = list(pos = list( 0, 13, nrow(tab1g) ),
+
+   command =  c(  " \\toprule  &  & \\textcolor{red}{Orig. IPD} & IPD boot. & Dist. boot. & CART & VAE & GC fm & GC am \\\\[0.2 cm] \\midrule ", "[0.4 cm]", "\\bottomrule"
+ )   ) )
+
+@ 
+
+
+
+\begin{sidewaysfigure}
+  \centering
+  \includegraphics[height = 15 cm, width = 22 cm]{BH_centers_plot_death.eps}
+  \caption{GASTRIC study data: center-specific log Nelson-Aalen estimate for outcome death.}
+  \label{fig:7}
+\end{sidewaysfigure}
+
+
+
+<<table_1h, results = tex, echo=FALSE>>=
+
+levels(tab1h$Est.) <- c("conv", "STE", "$R^2_{trial}$", "$\\theta$" )
+
+print(xtable(tab1h, digits = rep(0, dim(tab1h)[2] + 1  ),
+             align = c(rep("c", 5 ), "|c", rep("c", 3) ),  caption = paste0("Surrogate endpoints meta-analysis -- Disease for Death -- (model 1.h of Table~\\ref{table:0} -- main manuscript) ran on pooled data from a) original GASTRIC-study data (Orig. IPD -- gold standard), b) bootstrap on pooled IPD (IPD boot.), c) bootstrap on distributed IPD (Dist. boot.), d) classification and regression trees (CART), e) variational auto encoder (VAE), f) Gaussian copula (GC) using few (fm) versus all moments (am). All results, except Orig. IPD, are average values over 300 data realizations. Results diverging from Orig. IPD by at least ", tab_thres," (in absolute value) are boldfaced. Reported statistics are unadjasted estimates for the Clayton copula parameter ($\\theta$) -- strength of individual-level surrogacy  -- coefficient of determination ($R^2_{trial}$) -- trial-level surrogacy -- log surrogate threshold effect (STE), and Boolean (0/1) for overall model convergence (conv)."), label = "table:3h"),
+      include.rownames = FALSE, 
+      include.colnames = FALSE, 
+      hline.after = NULL ,
+      table.placement = "h", 
+      floating=TRUE,
+            caption.placement="top",
+            sanitize.text.function = force, 
+      add.to.row = list(pos = list( 0, nrow(tab1h) ),
+
+   command =  c(  " \\toprule   & \\textcolor{red}{Orig. IPD} & IPD boot. & Dist. boot. & CART & VAE & GC fm & GC am \\\\[0.2 cm] \\midrule ", "\\bottomrule"
+ )   ) )
+
+@ 
+
+
+
+<<table_1bres, results = tex, echo=FALSE>>=
+
+levels(tab1b3$Est.) <- c("$\\chi^2$", "$p$")
+
+print(xtable(tab1b3, digits = rep(0, dim(tab1b3)[2] + 1  ),
+             align = c(rep("c", 6 ), "|c", rep("c", 3) ),  caption = paste0("Test of PHs assumption on model 1.a (Table~\\ref{table:0}) based on scaled residuals (\\texttt{cox.zph()}) made on pooled data from a) original GASTRIC-study data (Orig. IPD -- gold standard), b) bootstrap on pooled IPD (IPD boot.), c) bootstrap on distributed IPD (Dist. boot.), d) classification and regression trees (CART), e) variational auto encoder (VAE), f) Gaussian copula (GC) using few (fm) versus all moments (am). All results, except Orig. IPD, are average values over 300 data realizations.Results diverging from Orig. IPD by at least ", tab_thres," (in absolute value) are boldfaced. Reported statistic is the Chi-test ($\\chi^2$) with 1 df for null slope of $\\beta(t)$ and and p-value ($p$)."), label = "table:4"),
+      include.rownames = FALSE, 
+      include.colnames = FALSE, 
+      hline.after = NULL ,
+      table.placement = "h", 
+      floating=TRUE,
+            caption.placement="top",
+            sanitize.text.function = force, 
+      add.to.row = list(pos = list( 0, 2, nrow(tab1b3) ),
+
+   command =  c(  " \\toprule  &  & \\textcolor{red}{Orig. IPD} & IPD boot. & Dist. boot. & CART & VAE & GC fm & GC am  \\\\[0.2 cm] \\midrule ", "[0.4 cm]", "\\bottomrule"
+ )   ) )
+
+@ 
+
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[height = 10 cm, width = 14 cm]{time_transform_model_1b.png}
+  \caption{Graphical assessment for transformation of pooled variable time used in model 1.b (see Table~\ref{table:3b}).}
+  \label{fig:8}
+\end{figure} 
+
+
+<<table_2_complete, results = tex, echo=FALSE>>=
+
+table2 <- apply(table2, 2, as.factor)
+
+print(xtable(table2, digits = rep(0, dim(table2)[2] + 1  ),
+             align = c("l", rep("c", dim(table2)[2] )),  caption = "Stratified Cox regression (model 1.a of Table~\\ref{table:3a}) for the effect of adjuvant chemotherapy vs surgery on outcome death before and after month 25th on pooled data from a) original GASTRIC-study (Orig. IPD), b) bootstrap on pooled IPD (IPD boot.), c) bootstrap on distributed IPD (Dist. boot.), d) classification and regression trees (CART), e) variational auto encoder (VAE), f) Gaussian copula with few (GC few. mom.) and g) all moments (GC all mom.). All results, except Orig. IPD, are average values over 300 data realizations. Significant estimates at level 0.01 are boldfaced. Estimates are on log scale: hazard ratio (HR), HR standard deviation (HR SD).", label = "table:5"),
+      include.rownames = TRUE, 
+      include.colnames = FALSE, 
+      hline.after = NULL ,
+      table.placement = "h", 
+      floating=TRUE,
+            caption.placement="top",
+            sanitize.text.function = force, 
+      add.to.row = list(pos = list( 0, nrow(table2) ),
+
+   command =  c(  " \\toprule & \\multicolumn{2}{c}{Up to 25th month} & \\multicolumn{2}{c}{After 25th month}   \\\\ [0.3 cm]
+   & HR & HR SD & HR & HR SD \\\\[0.2 cm] \\midrule ", "\\bottomrule"
+ )   ) )
+
+
+@ 
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[height = 14 cm, width = 15 cm]{km_plot_meta.png}
+  \caption{Overall survival (OS) and disease free survival (DFS) probability in control and treatment arm. Kaplan-Meier (KM) estimate computed on pooled data from a) original GASTRIC-study (Orig. IPD), b) parametric survival curve computed on the (fixed-effect) meta-analytic estimate of a constant hazard (Meta an.).}
+  \label{fig:9}
+\end{figure} 
+
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[height = 14 cm, width = 15 cm]{km_plot_bootDist.png}
+  \caption{Overall survival (OS) and disease free survival (DFS) probability in control and treatment arm. Kaplan-Meier (KM) estimate computed on pooled data from a) original GASTRIC-study (Orig. IPD), b) distributed bootstrap (Dist. Boot.) averaged over 300 data realizations.}
+  \label{fig:10}
+\end{figure} 
+
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[height = 8 cm, width = 15 cm]{km_plot_GCjohn.png}
+  \caption{Disease free survival (DFS) probability in control and treatment arm. Kaplan-Meier (KM) estimate computed on pooled data from a) original GASTRIC-study (Orig. IPD), b) pseudodata generated via proposed Gaussian copula (GC) using all moments (all mom.) and averaged over 300 data realizations.}
+  \label{fig:11}
+\end{figure} 
+
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[height = 14 cm, width = 15 cm]{km_plot_GCgamma.png}
+  \caption{Overall survival (OS) and disease free survival (DFS) probability in control and treatment arm. Kaplan-Meier (KM) estimate computed on pooled data from a) original GASTRIC-study (Orig. IPD), b) pseudodata generated via proposed Gaussian copula (GC) using fewer moments (few. mom.) and averaged over 300 data realizations.}
+  \label{fig:12}
+\end{figure} 
+
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[height = 14 cm, width = 15 cm]{km_plot_synpd.png}
+  \caption{Overall survival (OS) and disease free survival (DFS) probability in control and treatment arm. Kaplan-Meier (KM) estimate computed on pooled data from a) original GASTRIC-study (Orig. IPD), b) classification and regression trees (CART) averaged over 300 data realizations.}
+  \label{fig:13}
+\end{figure} 
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[height = 14 cm, width = 15 cm]{km_plot_vae.png}
+  \caption{Overall survival (OS) and disease free survival (DFS) probability in control and treatment arm. Kaplan-Meier (KM) estimate computed on pooled data from a) original GASTRIC-study (Orig. IPD), b) variational auto encoder (VAE) averaged over 300 data realizations.}
+  \label{fig:14}
+\end{figure} 
+
+
+%%% 12.02.2021 THIS TABLE IRELEVANT DELETE !!
+%% \begin{table}[h]
+%% \centering
+%% \caption{Simulation settings (also see Appendix A of main manuscript) in different scenarios (well- to mis-modeled). $\beta$ = log hazard ratio; $\lambda$ = Weibull time scale; $\nu$ = Weibull time shape; $C$ rate = Exponential rate of censoring; RE SD = random effect (frailty) standard deviation (log scale); s. size = sample size; PH = proportional hazard (assumption satisfied ?); Time 1 = first Weibull random time; Time 2 =  second Weibull random time. On average the first Weibull time is smaller than the second. } 
+%% \label{tabA}
+%% \begin{tabular}{lcccccc}
+%%     \toprule 
+%%        & \multicolumn{2}{c}{Well-modeled}  & \multicolumn{2}{c}{Mis-modeled-1} & \multicolumn{2}{c}{Mis-modeled-2} \\[0.2 cm] 
+%%          & Time 1 & Time 2  & Time 1 & Time 2 & Time 1 & Time 2  \\ \midrule 
+%%   $\beta$  & -.5 & --  & -.005 & -.5 & +.5 & -1.5  \\ 
+%%     $\lambda$  & 0.1 & --  & .27 & 0.1 & 0.2 & 0.1    \\[0.2cm] 
+%%       $\nu$  & 1.5 & --  & 1.05 & 1.5 & 1.05 & 1.5    \\ 
+%%   $C$ rate & .03 &  -- & .05 & .03 & .05 & .03  \\ 
+%%   RE SD  & 0.7 & --  & 0.7 & 0.7 & 0.7 & 0.7  \\ 
+%%   s. size  & $n$ & --  & $n/2$ & $n/2$ & $n/2$ & $n/2$  \\ 
+%%   PH & \multicolumn{2}{c}{Yes}  & \multicolumn{2}{c}{No} & \multicolumn{2}{c}{No} \\  
+%%   \bottomrule\end{tabular}
+%% \end{table}
+
+
+<<table_3, results = tex, echo=FALSE>>=
+
+tab2sub <- torepsim[, c(1:5, 7, 10:11, 8:9, 12)]
+
+tab2sub$Scenario <- as.factor(tab2sub$Scenario)
+levels(tab2sub$Scenario)[2:4] <-c("\\parbox[t]{2mm}{\\multirow{8}{*}{\\rotatebox[origin=c]{90}{Well modeled}}}",           "\\parbox[t]{2mm}{\\multirow{8}{*}{\\rotatebox[origin=c]{90}{Mis-modeled-1}}}",
+"\\parbox[t]{2mm}{\\multirow{8}{*}{\\rotatebox[origin=c]{90}{Mis-modeled-2}}}")                                  
+                                  
+
+print(xtable(tab2sub, digits = rep(0, dim(tab2sub)[2] + 1  ),
+             align = c("c", rep("l", 3), "c", "c", "c|", "c", "c|", rep("c", dim(tab2sub)[2]-8 ) ),  caption = paste0("Average (mean squared error) over 30 simulations of estimated parameters from a frailty Cox regression ran on pooled data from a) ground-truth IPD (Orig. IPD), b) bootstrap on Orig. IPD (IPD boot.), c) classification and regression trees (CART), d) variational auto encoder (VAE), e) pseudodata generated via proposed Gaussian copula (GC) using few (Fewer mom.) versus all moments (All mom.). Results on f) inverse-weighting random-effect meta-analysis (Meta an.) of shared HR estimates are given. For each simulation, all results except Orig. IPD and Meta an. are average values over 100 data realizations. Estimated parameters are the treatment log HR ($\\beta$), and its SD, on $n$ survival outcomes conditional on $k$ centers, log frailty SD ($\\xi$, or between-center heterogeneity). Ground-truth IPD is simulated according to well- and mis-modeled scenarios by GC. Well modeled: true (Ref.) HR is constant; Mis-modeled-1 (Mis-modeled-2): HR is -0.005 (+0.5) at earlier times and -0.5 (-1.5) otherwise, and reported is the time-averaged HR. Results diverging from Ref. value by at least ", tab_thres," are boldfaced (in absolute value). HR = hazard ratio, SD = standard deviation."), label = "table:6"),
+      include.rownames = FALSE, 
+      include.colnames = FALSE, 
+      hline.after = NULL ,
+      table.placement = "h", 
+      floating=TRUE,
+      floating.environment = "sidewaystable",
+            caption.placement="top",
+            sanitize.text.function = force, 
+      add.to.row = list(pos = list( 0, 4, 8, 12, 16, 20, nrow(tab2sub) ),
+
+   command =  c(  "\\toprule & & & & & & \\multicolumn{2}{c}{IPD non disclosive} & \\multicolumn{3}{c}{IPD non disclosive \\& summary based} \\\\  \\midrule & & & & & & & & \\multicolumn{2}{c}{Gaussian copula} & \\\\ [0.1 cm]  & $n$ ($k$) &  & Ref. & Orig. IPD & Dist. boot. & CART & VAE & Fewer mom. & All mom. & Meta an.  \\\\[0.2 cm] \\midrule ", "[0.2 cm]", "\\midrule ", "[0.2 cm]", "\\midrule ",  "[0.2 cm]", "\\bottomrule" )   ) )
+
+
+@ 
+
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[height = 12 cm, width = 13 cm]{kmSim_overlap_Distboot_500_6.eps}
+  \caption{Kaplan-Meier (KM) estimate averaged over 30 simulation runs ($n = 500$, $k = 6$, or see Section 5 of main text) from pooled a) ground-truth IPD (Orig. IPD), b) bootstrap on distributed IPD (Dist. boot.) averaged over 100 realizations.}
+  \label{fig:15}
+\end{figure} 
+
+
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[height = 12 cm, width = 13 cm]{kmSim_overlap_GCjohn_500_6.eps}
+  \caption{Kaplan-Meier (KM) estimate averaged over 30 simulation runs ($n = 500$, $k = 6$, or see Section 5 of main text) from pooled a) ground-truth IPD (Orig. IPD), b) Gaussian copula using all moments (GC all mom.) averaged over 100 realizations.}
+  \label{fig:16}
+\end{figure} 
+
+
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[height = 12 cm, width = 13 cm]{kmSim_overlap_MA_500_6.eps}
+  \caption{Kaplan-Meier (KM) estimate averaged over 30 simulation runs ($n = 500$, $k = 6$, or see Section 5 of main text) from pooled a) ground-truth IPD (Orig. IPD), b) parametric survival curve computed on the (fixed-effect) meta-analytic estimate of a constant hazard (Meta an.). }
+  \label{fig:17}
+\end{figure} 
+
+
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[height = 12 cm, width = 13 cm]{kmSim_overlap_CART_500_6.eps}
+  \caption{Kaplan-Meier (KM) estimate averaged over 30 simulation runs ($n = 500$, $k = 6$, or see Section 5 of main text) from pooled a) ground-truth IPD (Orig. IPD), b) classification and regression trees (CART) averaged over 100 realizations.}
+  \label{fig:18}
+\end{figure} 
+
+
+
+<<table_4, results = tex, echo=FALSE>>=
+
+### notes 27.01.2021: MA well estimates ranefSD. Question remains if here bias occurs when cor(frailty, ranefSD) is not zero ..... For this u unfortunately need to run simuls again ...Let see
+
+tab3sub <- torepsim2[, c(1:5, 7, 10:11, 8:9, 12)]
+
+tab3sub$Scenario <- as.factor(tab3sub$Scenario)
+levels(tab3sub$Scenario)[2:4] <-c("\\parbox[t]{2mm}{\\multirow{8}{*}{\\rotatebox[origin=c]{90}{Well modeled}}}",  
+                                  "\\parbox[t]{2mm}{\\multirow{8}{*}{\\rotatebox[origin=c]{90}{Mis-modeled-1}}}",
+                                  "\\parbox[t]{2mm}{\\multirow{8}{*}{\\rotatebox[origin=c]{90}{Mis-modeled-2}}}")                                  
+                                  
+
+print(xtable(tab3sub, digits = rep(0, dim(tab3sub)[2] + 1  ),
+             align = c("c", rep("l", 3), "c", "c", "c|", "c", "c|", rep("c", dim(tab3sub)[2]-8 ) ),  caption = paste0("Average (mean squared error) over 30 simulations of estimated parameters from a frailty Cox regression with (frailty-independent) random treatment-center interaction ran on pooled data from a) ground-truth IPD (Orig. IPD), b) bootstrap on Orig. IPD (IPD boot.), c) classification and regression trees (CART), d) variational auto encoder (VAE), e) pseudodata generated via proposed Gaussian copula (GC) using few (Fewer mom.) versus all moments (All mom.). Results on f) inverse-weighting random-effect meta-analysis (Meta an.) of shared HR estimates are given. For each simulation, all results except Orig. IPD and Meta an. are average values over 100 data realizations. Estimated parameters are the treatment log HR ($\\beta$), and its SD, on $n$ survival outcomes conditional on $k$ centers, log random-effect SD ($\\tau$, or between-center HR heterogeneity), log frailty SD ($\\xi$, or between-center heterogeneity). Ground-truth IPD is simulated according to well- and mis-modeled scenarios by GC. Well modeled: true (Ref.) HR is constant; Mis-modeled-1 (Mis-modeled-2): HR is -0.005 (+0.5) at earlier times and -0.5 (-1.5) otherwise, and reported is the time-averaged HR. Results diverging from Ref. value by at least ", tab_thres," are boldfaced (in absolute value). HR = hazard ratio, SD = standard deviation."), label = "table:7"),
+      include.rownames = FALSE, 
+      include.colnames = FALSE, 
+      hline.after = NULL ,
+      table.placement = "h", 
+      floating=TRUE,
+      floating.environment = "sidewaystable",
+            caption.placement="top",
+            sanitize.text.function = force, 
+      add.to.row = list(pos = list( 0, 4, 8, 12, 16, 20, nrow(tab3sub) ),
+
+   command =  c(  "\\toprule & & & & & & \\multicolumn{2}{c}{IPD non disclosive} & \\multicolumn{3}{c}{IPD non disclosive \\& summary based} \\\\  \\midrule & & & & & & & & \\multicolumn{2}{c}{Gaussian copula} & \\\\ [0.1 cm]  & $n$ ($k$) &  & Ref. & Orig. IPD & Dist. boot. & CART & VAE & Fewer mom. & All mom. & Meta an.  \\\\[0.2 cm] \\midrule ", "[0.2 cm]", "\\midrule ", "[0.2 cm]", "\\midrule ",  "[0.2 cm]", "\\bottomrule" )   ) )
+
+
+@ 
+
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[height = 12 cm, width = 13 cm]{kmSim_sidebyside_Distboot_500_6.eps}
+  \caption{Kaplan-Meier (KM) estimate averaged over 30 simulation runs ($n = 500$, $k = 6$, or see Section 5 of main text) from pooled a) ground-truth IPD (Orig. IPD), b) bootstrap on distributed IPD (Dist. boot.) averaged over 100 realizations. The time axis is cut at point 2 for graphical clarity.}
+  \label{fig:19}
+\end{figure} 
+
+
+
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[height = 12 cm, width = 13 cm]{kmSim_sidebyside_GCjohn_500_6.eps}
+  \caption{Kaplan-Meier (KM) estimate averaged over 30 simulation runs ($n = 500$, $k = 6$, or see Section 5 of main text) from pooled a) ground-truth IPD (Orig. IPD), b) Gaussian copula using all moments (GC all mom.) averaged over 100 realizations. The time axis is cut at point 2 for graphical clarity.}
+  \label{fig:20}
+\end{figure} 
+
+
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[height = 12 cm, width = 13 cm]{kmSim_sidebyside_CART_500_6.eps}
+  \caption{Kaplan-Meier (KM) estimate averaged over 30 simulation runs ($n = 500$, $k = 6$, or see Section 5 of main text) from pooled a) ground-truth IPD (Orig. IPD), b) classification and regression trees (CART) averaged over 100 realizations. The time axis is cut at point 2 for graphical clarity.}
+  \label{fig:21}
+\end{figure} 
+
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[height = 12 cm, width = 13 cm]{kmSim_sidebyside_VAE_500_6.eps}
+  \caption{Kaplan-Meier (KM) estimate averaged over 30 simulation runs ($n = 500$, $k = 6$, or see Section 5 of main text) from pooled a) ground-truth IPD (Orig. IPD), b) variational auto encoder (VAE) averaged over 100 realizations. The time axis is cut at point 2 for graphical clarity.}
+  \label{fig:22}
+\end{figure} 
+
+
+
+
+<<table_5, results = tex, echo=FALSE>>=
+
+tab4sub <- torepsim3[, c(1:5, 7, 10:11, 8:9, 12)]
+
+tab4sub$Scenario <- as.factor(tab4sub$Scenario)
+levels(tab4sub$Scenario)[2:4] <-c("\\parbox[t]{2mm}{\\multirow{10}{*}{\\rotatebox[origin=c]{90}{Well modeled}}}",  
+                                  "\\parbox[t]{2mm}{\\multirow{10}{*}{\\rotatebox[origin=c]{90}{Mis-modeled-1}}}",
+                                  "\\parbox[t]{2mm}{\\multirow{10}{*}{\\rotatebox[origin=c]{90}{Mis-modeled-2}}}")                                  
+                                  
+
+print(xtable(tab4sub, digits = rep(0, dim(tab4sub)[2] + 1  ),
+             align = c("c", rep("l", 3), "c", "c", "c|", "c", "c|", rep("c", dim(tab4sub)[2]-8 ) ),  caption = paste0("Average (mean squared error) over 30 simulations of estimated parameters from a multi-level Cox regression with correlated random effects ran on pooled data from a) ground-truth IPD (Orig. IPD), b) bootstrap on Orig. IPD (IPD boot.), c) classification and regression trees (CART), d) variational auto encoder (VAE), e) pseudodata generated via proposed Gaussian copula (GC) using few (Fewer mom.) versus all moments (All mom.). Results on f) inverse-weighting random-effect meta-analysis (Meta an.) of shared HR estimates are given. For each simulation, all results except Orig. IPD and Meta an. are average values over 100 data realizations. Estimated parameters are the treatment log HR ($\\beta$), and its SD, on $n$ survival outcomes conditional on $k$ centers, log random-effect SD ($\\tau$, or between-center HR heterogeneity), log frailty SD ($\\xi$, or between-center heterogeneity), correlation between frailty and random-effect ($\\rho$). Ground-truth IPD is simulated according to well- and mis-modeled scenarios by GC. Well modeled: true (Ref.) HR is constant; Mis-modeled-1 (Mis-modeled-2): HR is -0.005 (+0.5) at earlier times and -0.5 (-1.5) otherwise, and reported is the time-averaged HR. Results diverging from Ref. value by at least ", tab_thres," are boldfaced (in absolute value). HR = hazard ratio, SD = standard deviation."), label = "table:8"),
+      include.rownames = FALSE, 
+      include.colnames = FALSE, 
+      hline.after = NULL ,
+      table.placement = "h", 
+      floating=TRUE,
+      floating.environment = "sidewaystable",
+            caption.placement="top",
+            sanitize.text.function = force, 
+      add.to.row = list(pos = list( 0, 5, 10, 15, 20, 25, nrow(tab4sub) ),
+
+   command =  c(  "\\toprule & & & & & & \\multicolumn{2}{c}{IPD non disclosive} & \\multicolumn{3}{c}{IPD non disclosive \\& summary based} \\\\  \\midrule & & & & & & & & \\multicolumn{2}{c}{Gaussian copula} & \\\\ [0.1 cm]  & $n$ ($k$) &  & Ref. & Orig. IPD & Dist. boot. & CART & VAE & Fewer mom. & All mom. & Meta an.  \\\\[0.2 cm] \\midrule ", "[0.2 cm]", "\\midrule ", "[0.2 cm]", "\\midrule ",  "[0.2 cm]", "\\bottomrule" )   ) )
+
+@ 
+
+
+
+<<table_3b, results = tex, echo=FALSE>>=
+
+tab5$Scenario[c(1,5)] <- c("\\multirow{4}{4em}{False-1}",
+                           "\\multirow{4}{4em}{False-2}")
+
+print(xtable(tab5, digits = rep(0, dim(tab5)[2] + 1  ),
+             align = c("c", rep("l", 3), "c",  "c|",  rep("c", dim(tab5)[2]-5 ) ),  caption = "Average $\\chi^2$ value (scaled Cox-residuals PHs test using \\texttt{cox.zph()})) over 30 simulation runs, when the PHs do not hold (same two mis-modeling settings of Table~\\ref{table:6}. All results except Orig. IPD and Meta an. are average values over 100 data realizations P-values ($p$) smaller equal than 0.05 (true positive) are bold-faced.", label = "table:9"),
+      include.rownames = FALSE, 
+      include.colnames = FALSE, 
+      hline.after = NULL ,
+      table.placement = "h", 
+      floating=TRUE,      
+            caption.placement="top",
+            sanitize.text.function = force, 
+      add.to.row = list(pos = list( 0, 2, 4, 6, nrow(tab5) ),
+
+   command =  c(  "\\toprule & & & & & \\multicolumn{3}{c}{IPD non disclosive} \\\\  \\midrule & & & & & & \\multicolumn{2}{c}{Gaussian copula} \\\\ [0.1 cm]  PH ass. & $n$ ($k$) &  & Orig. IPD & Dist. boot. & CART & Fewer mom. & All mom.   \\\\[0.2 cm] \\midrule ", "[0.2 cm]", "\\midrule ", "[0.2 cm]", "\\bottomrule" )   ) )
+
+
+@ 
+
+
+
+<<table_last_a, results = tex, echo=FALSE>>=
+
+print(xtable(tabmain[1:18 ,], digits = c(0, 0,0,rep(3, 6)),
+             align = c("c", "c", "l", rep("c", 2), "c|", rep("c", 3)),
+             caption = paste0("Estimation similarity. Continuation of Table 2 of main text."), label = "table-syn"),
+      include.rownames = FALSE, 
+      include.colnames = FALSE, 
+      hline.after = NULL ,
+      table.placement = "h", 
+      floating=TRUE,
+      caption.placement="top",
+      sanitize.text.function = force, 
+      add.to.row = list(pos = list( 0, nrow(tabmain[1:18 ,]) ),
+
+                        command =  c(  "\\toprule & & \\multicolumn{3}{c}{Regression} & \\multicolumn{3}{c}{KM estimation} \\\\ \\midrule & & Pears. & $R^2$ &  RMSE & KS stat. & level & $H_0$ reject \\\\[0.2 cm] \\midrule ", "\\bottomrule" )   ) ) 
+
+@ 
+
+
+<<table_last_b, results = tex, echo=FALSE>>=
+
+print(xtable(tabmain[-c(1:18) ,], digits = c(0, 0,0,rep(3, 6)),
+             align = c("c", "c", "l", rep("c", 2), "c|", rep("c", 3)),
+             caption = paste0("Estimation similarity. Continuation of Table~\\ref{table-syn} for outcome Disease."), label = "table-syn-b"),
+      include.rownames = FALSE, 
+      include.colnames = FALSE, 
+      hline.after = NULL ,
+      table.placement = "h", 
+      floating=TRUE,
+      caption.placement="top",
+      sanitize.text.function = force, 
+      add.to.row = list(pos = list( 0, nrow(tabmain[-c(1:18) ,]) ),
+
+                        command =  c(  "\\toprule & & \\multicolumn{3}{c}{Regression} & \\multicolumn{3}{c}{KM estimation} \\\\ \\midrule & & Pears. & $R^2$ &  RMSE & KS stat. & level & $H_0$ reject \\\\[0.2 cm] \\midrule ", "\\bottomrule" )   ) ) 
+
+@ 
+
+
+
+\input{/home/bono/Documents/mybib/bib.call}
+
+\end{document}

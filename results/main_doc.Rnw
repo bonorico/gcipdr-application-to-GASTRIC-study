@@ -1,0 +1,252 @@
+\documentclass[AMA,STIX1COL]{WileyNJD-v2}
+\usepackage{moreverb}
+
+
+\newcommand\BibTeX{{\rmfamily B\kern-.05em \textsc{i\kern-.025em b}\kern-.08em
+T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+
+
+%%%% added by Bonofiglio %%%%%%%%%%%%%%%%%%%
+
+\newcommand{\var}{{\rm var}}
+\newcommand{\cor}{{\rm cor}}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+
+\articletype{Article Type}%
+
+\received{<day> <Month>, <year>}
+\revised{<day> <Month>, <year>}
+\accepted{<day> <Month>, <year>}
+
+%\raggedbottom
+
+\begin{document}
+
+\title{Survival meta-analysis under constrained disclosure of individual person data (IPD)}
+
+\author[1]{Federico Bonofiglio*}
+
+\authormark{Federico Bonofiglio}
+
+
+\address[1]{\orgdiv{Institute of Marine Sciences}, \orgname{ National Research Council of Italy (CNR)}, \orgaddress{Forte Santa Teresa, 19032 La Spezia \state{Italy}}}
+
+
+\corres{*Federico Bonofiglio, Institute of Marine Sciences, Forte Santa Teresa, 19032 La Spezia.  \email{}}
+
+%% \presentaddress{Present address}
+
+\abstract[Abstract]{ 
+  
+  %%% 227 words
+
+}
+
+
+\keywords{}
+
+\jnlcitation{\cname{%
+\author{Bonofiglio F.}, 
+} (\cyear{2020}), 
+\ctitle{Survival meta-analysis under constrained disclosure of individual person data (IPD)}, \cjournal{Res. Synth. Meth.}, \cvol{}.}
+
+\maketitle
+
+
+
+
+<< label= sourcecode, echo = false, results = hide  >>=
+
+########################################
+
+
+
+########################################
+
+round_up <- 3
+
+ExtractNum <- function(x, strsplL = "{", strsplR = "}"){
+
+    start <-  which(strsplit(as.character(x), "")[[1]] == strsplL)
+   stop <-  which(strsplit(as.character(x), "")[[1]] == strsplR)
+    if (length(start) > 0 & length(stop) > 0){
+        out <- substr(as.character(x), start + 1, stop -1)
+        return(out)
+    }else
+        return(as.character(x))
+   }
+
+####
+
+library(xtable)
+
+torep <- readRDS("all_tabs.rds")
+
+rso <- function(d) {   # re-arrange stacked output
+    if (dim(d)[1] > 2)
+        stop("max dim-1 is 2")
+    if (dim(d)[1] < 2 )
+        return(d)
+    out <- as.data.frame(
+        t(paste0(d[1, ], " (", d[2, ], ")")))
+    names(out) <- names(d)
+return(out)
+}   
+
+##### MAIN TABLE 
+## all LR test in this table have 1 df
+tab_thres <- as.character(0.05)
+
+tm <- rbind(
+    data.frame(torep$Tab_m1a$latex[1:4, c(2:3,5,8,9)],
+               MA = torep$Tab_m1a$latex[1:4, 10] ),
+    data.frame(torep$Tab_m1b$latex[c(6,8), c(2:3,5,8,9)],
+               MA = torep$Tab_m1b$latex[c(6,8), 10] ),
+    data.frame(torep$Tab_m1d$latex[c(10,12), c(2:3,5,8:9)],
+               MA = NA),
+    data.frame(torep$Tab_m1e$latex[1:2, c(2:3,5,8:9)],
+               MA = NA),
+    data.frame(torep$Tab_m1f$latex[c(5,8,10), c(2:3,5,8,9)],  ### 13 df for MA
+               MA = torep$Tab_m1f$latex[c(5,8,10), 10]),
+    data.frame(torep$Tab_m1g$latex[7:8, c(2:3,5,8:9)],   ### center effect similarly signifcant as in 1.e
+               MA = NA),
+    data.frame(torep$Tab_m1h$latex[1:3, c(1:2,4,7:8)],
+               MA = NA)
+)
+
+tm$IPD[which(is.na(tm$IPD))] <- "$\\cdot$"
+
+tm$MA <- as.character(tm$MA)
+
+tm$Est. <- c("$\\beta$", "SD", "$z_\\beta$", "$p$", "$z_\\gamma$", "$p$", "$\\chi^2_{\\text{1.c}}$", "$p$", "$\\xi$", "MHR", "$\\tau$", "$\\chi^2_{\\text{1.a}}$", "$p$", "$ \\rho$", "MSE", "$\\theta$", "$R^2_{trial}$", "STE")
+
+
+tmc <- rbind(
+    data.frame(model = "1.a", rso(tm[1:2,])),
+    data.frame(model = NA, rso(tm[3:4,])),
+    data.frame(model = "1.b", rso(tm[5:6,])),
+    data.frame(model = "1.d", rso(tm[7:8,])),
+    data.frame(model = "1.e", rso(tm[9:10,])),
+    data.frame(model = "1.f", tm[11,]),
+    data.frame(model = NA, rso(tm[12:13,])),
+    data.frame(model = "1.g", rso(tm[14:15,])),
+    data.frame(model = "1.h", tm[16,]),
+    data.frame(model = NA, tm[17,]),
+    data.frame(model = NA, tm[18,])
+    )
+
+tmc$MA[which(tmc$MA == "NA (NA)")] <- "$\\cdot$ ($\\cdot$)" 
+
+
+refan <- as.numeric(tm[["IPD"]])     #### TODO 23.12.2020  indexes messed up in text ...see what to do ..
+maan <- as.numeric(sapply(tm[["MA"]], function(x) ExtractNum(x) ))
+
+### generalized Chocrane between-study variance statistic (VERONIKI et al)
+ma1 <- torep$maos_1f
+w <- (1/ma1$seTE)
+d <- w*(ma1$TE - ma1$TE.fixed)^2
+gcv <- sqrt(sum(d)/sum(w))  ## weighted sd
+##
+
+t1g <- torep$Tab_m1g$raw$IPD
+
+sd <- sqrt(t1g[2]^2 + t1g[6]^2)
+pg <- pnorm(t1g[1]/sd, lower = TRUE)*2
+q <- qnorm(0.025, lower = FALSE)
+ci <- exp(c(t1g[1] - q*sd, t1g[1] + q*sd))
+
+rho <- torep$Tab_m1g$raw$IPDboot[7:8]
+
+
+gastadj <- torep$gastadj
+descr2 <- torep$descr2
+sns <- summary(as.numeric(table(gastadj$trialID)))
+
+torepsim <- readRDS("torep_simul_3.rds") 
+
+rvers <- paste(R.version$major, R.version$minor, sep = ".")
+
+km_synops <- torep$km_synops$latex
+regr_synops <- torep$regr_synops$latex
+tabmain <- cbind(regr_synops, km_synops[, -c(1, 2)])
+tabmain <- tabmain[1:28, -4]
+show <- c(2, 5, 6, 7, 16, 17, 18, 26:28)
+tabmain <- tabmain[show, -1]
+
+
+@ 
+
+
+
+<<table_1, results = tex, echo=FALSE>>=
+
+print(xtable(tmc, digits = rep(0, dim(tmc)[2] + 1  ),
+             align = c("c", "l", "l", "c", "c|", rep("c", dim(tmc)[2]-4 ) ),  caption = paste0("Relevant output from models 1.a to 1.h (Table~\\ref{table-0}) ran on pooled a) GASTRIC data (Orig. IPD -- gold standard), b) bootstrap on distributed IPD (Dist. boot.), c) pseudodata generated via proposed Gaussian copula (GC) using few (Fewer mom.) versus all moments (All mom.). Results from standard inverse-weighting fixed, or random (1.f), -effect meta-analysis (Meta an.) on shared HR estimates are given. All results, except Orig. IPD and Meta an., are average values over 300 data realizations. Reported statistics are estimates for the log HR ($\\beta$) of the effect of adjuvant chemotherapy vs surgery on death, z-test for the log HR ($z_\\beta$), z-test ($z_\\gamma$) for the time-HR interaction (test for PH assumption), Chi-test ($\\chi^2_{\\text{1.c}}$) for center-effect (LR of model 1.d vs 1.c with 1 df), log frailty SD ($\\xi$, or between-center heterogeneity), median HR (MHR), log random-effect SD ($\\tau$, or between-center HR heterogeneity), Chi-test ($\\chi^2_{\\text{1.a}}$) for random-effect (LR of model 1.f vs 1.a with 1 df, or Q-test and 13 df for Meta an.), correlation between frailty and random-effect ($\\rho$), its Monte Carlo mean square error (MSE), unadjasted Clayton copula parameter ($\\theta$, or strength of individual-level surrogacy of disease for death), trial-level surrogacy, or coefficient of determination ($R^2_{trial}$), log surrogate threshold effect (STE). Result diverging from Orig. IPD by at least ", tab_thres," (in absolute value) is boldfaced (except for Meta an. Q-test in model 1.f). HR = hazard ratio, SD = standard deviation, $p$ = p-value$^\\dagger$, LR = likelihood ratio, df = degree of freedom. $\\dagger$ computed on the averaged test statistic"), label = "table-1"),
+      include.rownames = FALSE, 
+      include.colnames = FALSE, 
+      hline.after = NULL ,
+      table.placement = "h", 
+      floating=TRUE,
+            caption.placement="top",
+            sanitize.text.function = force, 
+      add.to.row = list(pos = list( 0, 2,3,4,5,7,8, nrow(tmc) ),
+
+   command =  c(  "\\toprule  & & & & \\multicolumn{3}{c}{IPD non disclosive \\& summary based} \\\\  \\midrule  & & & & \\multicolumn{2}{c}{Gaussian copula} & \\\\ [0.1 cm]
+   Model &  & Orig. IPD & Dist. Boot. &  Fewer mom. & All mom. & Meta an.  \\\\[0.2 cm] \\midrule ",
+   rep("[0.4 cm]", 6), "\\bottomrule" )   ) )
+
+
+@ 
+
+
+
+<<table_2, results = tex, echo=FALSE>>=
+
+print(xtable(tabmain, digits = c(0,0,rep(3, 6)),
+             align = c("c", "l", rep("c", 2), "c|", rep("c", 3)),  caption = paste0("Regression (model 1.a to 1.h) or Kaplan Meier (KM) estimation similarity (outcome Death). Pairwise Pearson correlation (Pears.), $R^2$, root mean squared error (RMSE), Kolmogorov-Smirnov (KS) statistic$^\\dagger$, significance level, and rejection (0 = no, 1 = yes) of test hypothesis ($H_0$) of similar distributions computed on pooled a) GASTRIC data (Orig. IPD), b) bootstrap on distributed IPD (Dist. boot.), c) pseudodata generated via proposed Gaussian copula (GC) using few (few. mom.) versus all moments (all mom.), d) standard inverse-weighting meta-analysis (Meta an.) where applicable (model 1.a, b, f). See Table 4--11 SM for full list of regression estimates, and Figure 11--14 SM for KM plots. $^\\dagger$unadjasted for censoring, and averaged across treatment groups."), label = "table-2"),
+      include.rownames = FALSE, 
+      include.colnames = FALSE, 
+      hline.after = NULL ,
+      table.placement = "h", 
+      floating=TRUE,
+      caption.placement="top",
+      sanitize.text.function = force, 
+      add.to.row = list(pos = list( 0, nrow(tabmain) ),
+
+                        command =  c(  "\\toprule & \\multicolumn{3}{c}{Regression} & \\multicolumn{3}{c}{KM estimation} \\\\ \\midrule  & Pears. & $R^2$ &  RMSE & KS stat. & level & $H_0$ reject \\\\[0.2 cm] \\midrule ", "\\bottomrule" )   ) ) 
+
+@ 
+
+
+
+<<table_3, results = tex, echo=FALSE>>=
+
+
+tab4sub <- torepsim[, c(1:5, 7, 8:9, 12)]
+
+tab4sub$Scenario <- as.factor(tab4sub$Scenario)
+levels(tab4sub$Scenario)[2:4] <-c("\\parbox[t]{2mm}{\\multirow{10}{*}{\\rotatebox[origin=c]{90}{Well modeled}}}",  
+                                  "\\parbox[t]{2mm}{\\multirow{10}{*}{\\rotatebox[origin=c]{90}{Mis-modeled-1}}}",
+                                  "\\parbox[t]{2mm}{\\multirow{10}{*}{\\rotatebox[origin=c]{90}{Mis-modeled-2}}}")                                  
+                                  
+
+print(xtable(tab4sub, digits = rep(0, dim(tab4sub)[2] + 1  ),
+             align = c("c", rep("l", 3), "c", "c", "c|", rep("c", 3 ) ),  caption = paste0("Average (mean squared error) over 30 simulations of estimated parameters from a multi-level Cox regression with correlated random effects ran on pooled data from a) ground-truth IPD (Orig. IPD), b) bootstrap on Orig. IPD (IPD boot.), c) pseudodata generated via proposed Gaussian copula (GC) using few (Fewer mom.) versus all moments (All mom.). Results on f) inverse-weighting random-effect meta-analysis (Meta an.) of shared HR estimates are given. For each simulation, all results except Orig. IPD and Meta an. are average values over 300 data realizations. Estimated parameters are the treatment log HR ($\\beta$), and its SD, on $n$ survival outcomes conditional on $k$ centers, log random-effect SD ($\\tau$, or between-center HR heterogeneity), log frailty SD ($\\xi$, or between-center heterogeneity), correlation between frailty and random-effect ($\\rho$). Ground-truth IPD is simulated according to well- and mis-modeled scenarios by GC. Well modeled: true (Ref.) HR is constant; Mis-modeled-1 (Mis-modeled-2): HR is -0.005 (+0.5) at earlier times and -0.5 (-1.5) otherwise, and reported is the time-averaged HR. Results diverging from Ref. value by at least ", tab_thres," are boldfaced (in absolute value). HR = hazard ratio, SD = standard deviation."), label = "table-3"),
+      include.rownames = FALSE, 
+      include.colnames = FALSE, 
+      hline.after = NULL ,
+      table.placement = "h", 
+      floating=TRUE,
+      caption.placement="top",
+      sanitize.text.function = force, 
+      add.to.row = list(pos = list( 0, 5, 10, 15, 20, 25, nrow(tab4sub) ),
+                        command =  c(  "\\toprule & & & & & & \\multicolumn{3}{c}{IPD non disclosive \\& summary based} \\\\  \\midrule & & & & & & \\multicolumn{2}{c}{Gaussian copula} & \\\\ [0.1 cm]  & $n$ ($k$) &  & Ref. & Orig. IPD & Dist. boot. & Fewer mom. & All mom. & Meta an.  \\\\[0.2 cm] \\midrule ", "[0.2 cm]", "\\midrule ", "[0.2 cm]", "\\midrule ",  "[0.2 cm]", "\\bottomrule" )   ) )
+
+
+
+@ 
+
+
+\end{document}
