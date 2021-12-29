@@ -40,7 +40,7 @@ GC_pseudodata <- function()
                     set.seed( jiseed, "L'Ecuyer") # delete this line to assess stability
                     print(
                         system.time(
-                            artificial.data <- taylored_optim_GC(H,
+                            artificial.data <- tailored_optim_GC(H,
                                                                s$N,
                                                                s$corr,
                                                                s$moms,

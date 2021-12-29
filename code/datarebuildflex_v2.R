@@ -17,7 +17,7 @@
 
 
 
-#' @title Taylored GC optimization
+#' @title Tailored GC optimization
 #' @description Sequential GC optimization, based on analytic Kruskal conversion, or alternating integration (stochastic or numerical).
 #' @param SI_k_seq a sequence of (increasing) values for argument 'SI_k' of DataRebuild.
 #' @param NI_maxEval_seq a sequence of (increasing) values for argument 'NI_maxEval' of DataRebuild.
@@ -31,7 +31,7 @@
 
                                         # Test 26.12.2021
 
-taylored_optim_GC <- function(H, n, correlation.matrix, moments, x.mode,
+tailored_optim_GC <- function(H, n, correlation.matrix, moments, x.mode,
                               corrtype = c("moment.corr", "rank.corr", "normal.corr"),
                               marg.model = c("gamma", "johnson"), variable.names = NULL,
                               SBjohn.correction = FALSE, compute.eec = FALSE, checkdata = FALSE,
