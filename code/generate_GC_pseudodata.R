@@ -27,20 +27,20 @@
 GC_pseudodata <- function()
 {
     H <- 300  # set simulation size
-    seed <- 734   #  734932
+    seed <- 734   
     system.time(
-                                        # NOTE: can just run once --> next time load saved artificial data (below) directly
         artds <-  lapply(
             c("gamma", "johnson"), function(j)
             {
                 out <- lapply(trialnames, function(tn)
                 {
+                    message("Model ", j, ". Trial Nr. ", tn)
                     s <-  trial_summaries[[tn]] # trial data
                     jiseed <- as.integer(tn) + seed + nchar(j)
                     set.seed( jiseed, "L'Ecuyer") # delete this line to assess stability
                     print(
                         system.time(
-                            artificial.data <- DataRebuildFlex(H,
+                            artificial.data <- taylored_optim_GC(H,
                                                                s$N,
                                                                s$corr,
                                                                s$moms,
@@ -49,7 +49,7 @@ GC_pseudodata <- function()
                                                                variable.names = s$names,
                                                                checkdata = TRUE,
                                                                tabulate.similar.data = TRUE,
-                                                               assume.all.smooth = FALSE,
+                                                               try_kruskal_first = FALSE,
                                                                s.seed = jiseed
                                                                )
                         )

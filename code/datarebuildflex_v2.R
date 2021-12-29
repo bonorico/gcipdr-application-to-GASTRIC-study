@@ -17,6 +17,83 @@
 
 
 
+#' @title Taylored GC optimization
+#' @description Sequential GC optimization, based on analytic Kruskal conversion, or alternating integration (stochastic or numerical).
+#' @param SI_k_seq a sequence of (increasing) values for argument 'SI_k' of DataRebuild.
+#' @param NI_maxEval_seq a sequence of (increasing) values for argument 'NI_maxEval' of DataRebuild.
+#' @param plan_switch integer atomic vector - If equals 1, it indicates numerical integration. If 2, it indicates stochastic integration.
+#'    E.g. c(1,2,2,1) defines the plan = numeric, stochastic, stochastic, numeric, in this specific order. The length of 'NI_maxEval_seq' ('SI_k_seq
+#'    ') must agree with number of 1's (2's).
+#' @param try_kruskal_first logical - Should Kruskal conversion be performed ? Default FALSE. If TRUE it overrides all other integration options.
+#' @param treshold numerical - Threshold in absolute value for the accepted difference between observed and simulated correlation. Default = 0.15. 
+#' @details For all other arguments refer to 'DataRebuild'.
+#' @seealso DataRebuild
+
+                                        # Test 26.12.2021
+
+taylored_optim_GC <- function(H, n, correlation.matrix, moments, x.mode,
+                              corrtype = c("moment.corr", "rank.corr", "normal.corr"),
+                              marg.model = c("gamma", "johnson"), variable.names = NULL,
+                              SBjohn.correction = FALSE, compute.eec = FALSE, checkdata = FALSE,
+                              tabulate.similar.data = FALSE, SI_k_seq = c(8000, 30000, 50000),
+                              NI_tol = 0.01, NI_maxEval_seq = c(500, 2000), plan_switch = c(1, 2, 2, 1, 2),
+                              try_kruskal_first = FALSE, treshold = 0.15, s.seed = NULL)
+{
+    if (length(plan_switch[plan_switch == 1]) != length(NI_maxEval_seq) |
+        length(plan_switch[plan_switch == 2]) != length(SI_k_seq))
+        stop("in plan_switch: Number of '1's ('2's) must equal length of 'NI_maxEval_seq' ('SI_k_seq').")
+    performance <- c()  
+    logmex <- c()  # log message
+    stop_condition <- quote(ifelse(class(out) == "similar.data",
+                                       all(abs(out$is.similar[[5]][, 3]) <= treshold), FALSE) )  # threshold between in and out correlation
+    record_performance <- quote( ifelse(class(out) == "similar.data", 
+                                        mean(abs(out$is.similar[[5]][, 3]) > treshold), NA ) )  # record mean failure incidence  
+    mex <- paste0( c("Kruskal", "Kruskal fine-tuned", "Numerical", "Stochastic"), " integration. ")
+    names(mex) <- as.character(-1:2)
+    plan_switch <- c(-1:0, plan_switch)
+    plan_N <- length(plan_switch)
+    optim_seq <- vector(mode = "integer", length = plan_N)
+    optim_seq[which(plan_switch == 1)] <-  NI_maxEval_seq
+    optim_seq[which(plan_switch == 2)] <-  SI_k_seq
+    for (i in 1:plan_N)
+    {
+        if (!try_kruskal_first & plan_switch[i] < 1)     # skip if Kruskal approach is set to FALSE
+            next
+        planindex <- as.character(plan_switch[i])
+        current_plan <- paste0(mex[planindex],
+                               c("1" = "NI_maxeval = ", "2" = "SI_k = ")[planindex], optim_seq[i] )
+        print(current_plan)
+        logmex <- c(logmex, current_plan)
+        set.seed( s.seed, "L'Ecuyer")
+        out  <- try(
+            DataRebuild(H, n, correlation.matrix, moments,
+                        x.mode, marg.model = marg.model,
+                        variable.names = variable.names, checkdata = checkdata,
+                        tabulate.similar.data = tabulate.similar.data,
+                        stochastic.integration = ifelse(plan_switch[i] == 2, TRUE, FALSE),
+                        SI_k = optim_seq[i], NI_maxEval = optim_seq[i],
+                        assume.all.smooth = ifelse(try_kruskal_first & plan_switch[i] == -1, TRUE, FALSE),
+                        cp.finetune = ifelse(try_kruskal_first & plan_switch[i] == 0, TRUE, FALSE)),
+            silent = TRUE )
+        performance <- c(performance, eval(record_performance))
+        if ( eval(stop_condition) )
+            break
+    }
+    print(paste0("Exiting with ", logmex[length(logmex)]))
+    return(list(res = out,
+                logmex = data.frame(exitmex = logmex[length(logmex)],
+                                    perfexit = performance[length(performance)],
+                                    bestperf = logmex[which(performance == min(performance, na.rm = TRUE))[1]],
+                                    bestperfval = min(performance, na.rm = T)
+                                    )
+                )
+           )
+
+}  
+
+
+
+
 #' @name PasteDistributed
 #' @title Pool center-specific artificial data
 #'
@@ -47,168 +124,5 @@ PasteDistributed <- function(obj, hubsvariable, hubsnames)
     )
     return(listofpooled)
 }
-
-
-
-#' @name DataRebuildFlex
-#' @title Flexible DataRebuild
-#'
-#' @description Performs a rudimental adaptive NORTA optimizationg based on rough Kruskal conversion, or stochastic or numerical integration.
-#'
-#' @param SI_k_seq a sequence of three (increasing) values for the 'SI_k' argument of DataRebuild.
-#'
-#' @param NI_maxEval_seq a sequence of two (increasing) values for the 'NI_maxEval' argument of DataRebuild.
-#'
-#' @param assume.all.smooth logical. Should rough Kruskal conversion (with fine-tuning) be performed ? Default TRUE.
-
-
-## adaptive data rebuild based on simulation outcome
-
-DataRebuildFlex <- function(H, n, correlation.matrix, moments, x.mode,
-                            corrtype = c("moment.corr", "rank.corr", "normal.corr"),
-                            marg.model = c("gamma", "johnson"), variable.names = NULL,
-                            SBjohn.correction = FALSE, compute.eec = FALSE, checkdata = FALSE,
-                            tabulate.similar.data = FALSE, SI_k_seq = c(8000, 30000, 50000),
-                            NI_tol = 0.01, NI_maxEval_seq = c(500, 2000),
-                            assume.all.smooth = FALSE, treshold = 0.15, s.seed = NULL)
-{
-    perf <- c()  # performance
-    logmex <- c()  # log message
-    out <- NULL
-    condition_refused <- quote(
-        class(out) == "try-error" |
-        ifelse(class(out) == "similar.data",
-               any(abs(out$is.similar[[5]][, 3]) > treshold),
-               FALSE)
-    )    
-### mixed approach
-    if (assume.all.smooth)
-    {
-        mex1 <- paste("using Kruskal analytic solution")
-        logmex <- c(logmex, paste0("exiting after ", mex1))
-        print(mex1)
-        out  <- try(
-            DataRebuild(H, n, correlation.matrix, moments,
-                        x.mode, marg.model = marg.model,
-                        corrtype = corrtype, variable.names = variable.names,
-                        checkdata = checkdata, tabulate.similar.data = tabulate.similar.data,
-                        assume.all.smooth = TRUE ),
-            silent = TRUE )
-        perf <- c(perf,
-                  ifelse(class(out) != "try-error",
-                         mean(abs(out$is.similar[[5]][, 3]) > treshold),
-                         NA
-                         )
-                  )
-        if ( eval(condition_refused) )
-        {
-            mex2 <- paste("fine-tuning Kruskal analytic solution")
-            logmex <- c(logmex, paste0("exiting after ",mex2))
-            print(mex2)
-            set.seed( s.seed, "L'Ecuyer")
-            out  <- try(
-                DataRebuild(H, n, correlation.matrix, moments,
-                            x.mode, marg.model = marg.model,
-                            variable.names = variable.names, checkdata = checkdata,
-                            tabulate.similar.data = tabulate.similar.data,
-                            assume.all.smooth = TRUE, cp.finetune = TRUE  ),
-                silent = TRUE )
-            perf <- c(perf, ifelse(class(out) != "try-error", mean(abs(out$is.similar[[5]][, 3]) > treshold), NA ))
-
-   
-                  }
-    }
-    if (ifelse(!is.null(out),
-               eval(condition_refused),
-               TRUE)
-        )
-    {
-        mex3 <- ifelse( !is.null(out),
-                       paste("switching to numerical integration. NI_maxEval =", NI_maxEval_seq[1]),
-                       paste("using numerical integration. NI_maxEval =", NI_maxEval_seq[1]) )
-        logmex <- c(logmex, paste0("exiting after ",mex3))
-        print(mex3)
-        set.seed( s.seed, "L'Ecuyer")
-        out  <- try(
-            DataRebuild(H, n, correlation.matrix, moments, x.mode,
-                        marg.model = marg.model, NI_maxEval = NI_maxEval_seq[1],
-                        variable.names = variable.names, checkdata = checkdata,
-                        tabulate.similar.data = tabulate.similar.data  ),
-            silent = TRUE )
-        perf <- c(perf, ifelse(class(out) != "try-error", mean(abs(out$is.similar[[5]][, 3]) > treshold), NA ))
-    }
-    if ( eval(condition_refused) )
-    {    # increase maxevals
-        mex4 <- paste("switching to stochastic integration. SI_k =", SI_k_seq[1])
-        logmex <- c(logmex, paste0("exiting after ",mex4))
-        print(mex4)
-        set.seed( s.seed, "L'Ecuyer")
-        out  <- try(
-            DataRebuild(H, n, correlation.matrix, moments,
-                        x.mode, marg.model = marg.model, stochastic.integration = TRUE,
-                        SI_k = SI_k_seq[1], variable.names = variable.names,
-                        checkdata = checkdata, tabulate.similar.data = tabulate.similar.data  ),
-            silent = TRUE )
-        perf <- c(perf, ifelse(class(out) != "try-error", mean(abs(out$is.similar[[5]][, 3]) > treshold), NA ))
-    }
-    if ( eval(condition_refused) )
-    {    # increase maxevals
-        mex5 <- paste("increasing SI_k =", SI_k_seq[2])
-        logmex <- c(logmex, paste0("exiting after ",mex5))
-        print(mex5)
-        set.seed( s.seed, "L'Ecuyer")
-        out  <- try(
-            DataRebuild(H, n, correlation.matrix, moments, x.mode,
-                        marg.model = marg.model, stochastic.integration = TRUE,
-                        SI_k = SI_k_seq[2], variable.names = variable.names,
-                        checkdata = checkdata, tabulate.similar.data = tabulate.similar.data  ),
-            silent = TRUE )
-        perf <- c(perf, ifelse(class(out) != "try-error", mean(abs(out$is.similar[[5]][, 3]) > treshold), NA ))
-
-    }
-    if ( eval(condition_refused) )
-    {   # increase maxevals
-        mex6 <- paste("switching to numerical integration. NI_maxEval =", NI_maxEval_seq[2])
-        logmex <- c(logmex, paste0("exiting after ",mex6))
-        print(mex6)
-        set.seed( s.seed, "L'Ecuyer")
-        out  <- try(
-            DataRebuild(H, n, correlation.matrix, moments, x.mode,
-                        marg.model = marg.model, NI_maxEval = NI_maxEval_seq[2],
-                        variable.names = variable.names, checkdata = checkdata,
-                        tabulate.similar.data = tabulate.similar.data  ),
-            silent = TRUE )
-        perf <- c(perf, ifelse(class(out) != "try-error", mean(abs(out$is.similar[[5]][, 3]) > treshold), NA ))
-
-    }
-    if ( eval(condition_refused) )
-    {    # increase maxevals
-        mex7 <- paste("switching to stochastic integration. SI_k =", SI_k_seq[3])
-        logmex <- c(logmex, paste0("exiting after ",mex7))
-        print(mex7)
-        set.seed( s.seed, "L'Ecuyer")
-        out  <- try(
-            DataRebuild(H, n, correlation.matrix, moments, x.mode,
-                        marg.model = marg.model, stochastic.integration = TRUE,
-                        SI_k = SI_k_seq[3], variable.names = variable.names,
-                        checkdata = checkdata, tabulate.similar.data = tabulate.similar.data),
-            silent = TRUE )
-        perf <- c(perf, ifelse(class(out) != "try-error", mean(abs(out$is.similar[[5]][, 3]) > treshold), NA ))
-        
-    }
-    print(logmex[length(logmex)])
-    return(list(res = out,
-                logmex = data.frame(exitmex = logmex[length(logmex)],
-                                    perfexit = perf[length(perf)],
-                                    bestperf = logmex[which(perf == min(perf, na.rm = T))[1]],
-                                    bestperfval = min(perf, na.rm = T)
-                                    )
-                )
-           ) 
-    
-}
-
-
-
 
 
