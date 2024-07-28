@@ -1,4 +1,16 @@
+# install the development version of packages, in case the
+# issue is already fixed but not on CRAN yet.
 
+# IF NOT INSTALLED YET, ......
+# reticulate::install_python()
+# reticulate::virtualenv_create("r-venv", version = "3.10.14")
+
+reticulate::use_virtualenv("~/.virtualenvs/r-tensorflow/", required = TRUE)
+reticulate::py_config()
+
+tensorflow::as_tensor("Hello World")
+
+tensorflow::tf$constant("Hello TensorFlow!")
 
 if (!require("keras")) {
 ## devtools::install_github("rstudio/keras")
@@ -9,10 +21,12 @@ library(keras)
 
 
 if (!require("tensorflow")) {
-install.packages("tensorflow")
-library(tensorflow)
-install_tensorflow()
-} 
+
+  install.packages("tensorflow")
+  tensorflow::install_tensorflow(envname = "r-tensorflow")
+
+  library(tensorflow)
+}
 
 
 
@@ -31,7 +45,7 @@ tensorflow::tf$random$set_seed(0)  # temporary solution to make VAE results repr
 
 K <- keras::backend()
 
-     
+
 # Parameters --------------------------------------------------------------
 
 original_dim <- 5L
@@ -51,18 +65,18 @@ z_log_var <- layer_dense(h, latent_dim)
 sampling <- function(arg){
   z_mean <- arg[, 1:(latent_dim)]
   z_log_var <- arg[, (latent_dim + 1):(2 * latent_dim)]
-  
+
   epsilon <- k_random_normal(
-    shape = c(k_shape(z_mean)[[1]]), 
+    shape = c(k_shape(z_mean)[[1]]),
     mean=0.,
     stddev=epsilon_std
   )
-  
+
   z_mean + k_exp(z_log_var/2)*epsilon
 }
 
 # note that "output_shape" isn't necessary with the TensorFlow backend
-z <- layer_concatenate(list(z_mean, z_log_var)) %>% 
+z <- layer_concatenate(list(z_mean, z_log_var)) %>%
   layer_lambda(sampling)
 
 # we instantiate these layers separately so as to reuse them later
@@ -76,7 +90,7 @@ x_decoded_mean <- decoder_mean(h_decoded)
 
 ## define decoding layers .... for the generator (note difference with above)
 decoder_input <- layer_input(shape = latent_dim)
-h_decoded_2 <- decoder_h(decoder_input) 
+h_decoded_2 <- decoder_h(decoder_input)
 x_decoded_mean_2 <- decoder_mean(h_decoded_2)
 
 
@@ -99,7 +113,7 @@ vae_loss <- function(x, x_decoded_mean){
   xent_loss + kl_loss
 }
 
-vae %>% compile(optimizer = "rmsprop", loss = vae_loss)
+vae %>% keras3::compile(optimizer = "rmsprop", loss = vae_loss)
 
 
 #####################################################################
@@ -110,7 +124,7 @@ VAE <- function(x_train, H, epochs = 30L, repeat_data = 100, batch_split = 0.3)
 {
     names <- colnames(x_train)
     x_train <- as.matrix(x_train)
-    orig_dim <- dim(x_train)  # original dimension    
+    orig_dim <- dim(x_train)  # original dimension
     isbin <- apply(x_train, 2, is.binary)  # func 'is.binary' from gcipdr package
     x_train_augm <-  do.call(
         "rbind",
@@ -129,7 +143,7 @@ VAE <- function(x_train, H, epochs = 30L, repeat_data = 100, batch_split = 0.3)
     )
     examples_dim <- dim(x_train_augm)[1]   # dimension of augmented examples
     batch_size <- ifelse(examples_dim < 800, round(examples_dim*batch_split, 0), 100L)
-    x_train_augm <- as.matrix(x_train_augm)   
+    x_train_augm <- as.matrix(x_train_augm)
 
 
                                         # Model training ----------------------------------------------------------
