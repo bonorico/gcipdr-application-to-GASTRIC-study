@@ -5,7 +5,7 @@
 # reticulate::install_python()
 # reticulate::virtualenv_create("r-venv", version = "3.10.14")
 
-reticulate::use_virtualenv("~/.virtualenvs/r-tensorflow/", required = TRUE)
+reticulate::use_virtualenv("~/.virtualenvs/r-keras/", required = TRUE)
 reticulate::py_config()
 
 tensorflow::as_tensor("Hello World")
@@ -29,6 +29,7 @@ if (!require("tensorflow")) {
 }
 
 
+# update: code appears to be broken with later package release. See https://divingintogeneticsandgenomics.com/post/how-to-code-a-variational-autoencoder-vae-in-r-using-mnist-dataset/ for running the network
 
 ### code based on: https://github.com/rstudio/keras/blob/master/vignettes/examples/variational_autoencoder.R
 
@@ -113,7 +114,10 @@ vae_loss <- function(x, x_decoded_mean){
   xent_loss + kl_loss
 }
 
-vae %>% keras3::compile(optimizer = "rmsprop", loss = vae_loss)
+vae %>%
+  compile(
+    optimizer = "rmsprop",
+    loss = vae_loss)
 
 
 #####################################################################
