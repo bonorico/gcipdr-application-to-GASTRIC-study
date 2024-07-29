@@ -1,31 +1,56 @@
 # install the development version of packages, in case the
 # issue is already fixed but not on CRAN yet.
 
-# IF NOT INSTALLED YET, ......
-# reticulate::install_python()
-# reticulate::virtualenv_create("r-venv", version = "3.10.14")
 
-reticulate::use_virtualenv("~/.virtualenvs/r-keras/", required = TRUE)
-reticulate::py_config()
+if (Sys.info()['sysname'] == "Windows") {
+  if (!require("keras") & !require("tensorflow") & !require("reticulate"))
+  {
+    install.packages("remotes")
+    remotes::install_github(sprintf("rstudio/%s", c("reticulate", "tensorflow", "keras")))
+    reticulate::miniconda_uninstall() # start with a blank slate
+    reticulate::install_miniconda()
+    keras::install_keras()    
+  }
+
+} else {
+  
+  if (!require("reticulate")) {
+
+    reticulate::install_python()
+    reticulate::virtualenv_create("r-venv", version = "3.10.14")
+    
+  }
+
+}
+
+if (Sys.info()['sysname'] != "Windows"){
+  
+  reticulate::use_virtualenv("~/.virtualenvs/r-keras/", required = TRUE)
+  reticulate::py_config()
+  
+} else {
+  # TODO
+  # use condaenv
+}
 
 tensorflow::as_tensor("Hello World")
 
 tensorflow::tf$constant("Hello TensorFlow!")
 
 if (!require("keras")) {
-## devtools::install_github("rstudio/keras")
-install.packages("keras")
-library(keras)
-## install_keras()
+  ## devtools::install_github("rstudio/keras")
+  install.packages("keras")
+  library(keras)
+  ## install_keras()
 }
 
 
 if (!require("tensorflow")) {
 
   install.packages("tensorflow")
-  tensorflow::install_tensorflow(envname = "r-tensorflow")
-
   library(tensorflow)
+ # tensorflow::install_tensorflow(envname = "r-tensorflow")
+
 }
 
 
