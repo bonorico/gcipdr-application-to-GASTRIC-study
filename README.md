@@ -29,3 +29,10 @@ other attached packages:
 [26] cubature_2.1.1           moments_0.14.1           JohnsonDistribution_0.24
 
 ```
+
+Based on the above system info, you might want to install version specific packages with 
+
+```
+remotes::install_version("ggplot2", version = "0.9.1", repos = "http://cran.us.r-project.org")
+
+```

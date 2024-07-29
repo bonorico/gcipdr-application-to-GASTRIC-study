@@ -8,8 +8,8 @@ if (Sys.info()['sysname'] == "Windows") {
     install.packages("remotes")
     remotes::install_github(sprintf("rstudio/%s", c("reticulate", "tensorflow", "keras")))
     
-    reticulate::install_python()
-    keras::install_keras()
+    reticulate::install_python(version = "3.10.11")
+    keras::install_keras(version = "2.16.0")
     
     # issues installing keras in windows. See : https://stackoverflow.com/questions/64774459/error-python-module-tensorflow-was-not-found-rstudio-windows10-path-problem
     
