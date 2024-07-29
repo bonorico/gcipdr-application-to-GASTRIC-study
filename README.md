@@ -8,10 +8,5 @@ This analysis was presented in [Survival analysis without sharing of individual 
 
 # Detail
 
-Tensorflow installation for VAE might be problematic. If you are using Linux, in [vae_generator.R](https://github.com/bonorico/gcipdr-application-to-GASTRIC-study/blob/main/utils/vae_generator.R) be sure to have a fresh python installation and virtual environment:
-```
-reticulate::install_python()
-reticulate::virtualenv_create("r-venv", version = "3.10.14")
-```
-If you are using Windows, you might want to follow [this](https://github.com/rstudio/tensorflow/issues/510#issuecomment-1045120710).
+Tensorflow installation for VAE might be problematic. The code attempts to distinguish between OS (Windows or not) and tailor installation accordingly. Because of rapid development of packages tensorflow and keras the current VAE code might become outdated any time soon. Efforts to mantain the VAE code cannot be guaranteed.
 
