@@ -9,7 +9,7 @@ This analysis was presented in [Survival analysis without sharing of individual 
 # Detail
 
 Tensorflow installation for VAE might be problematic. The code attempts to distinguish between OS (Windows or not) and tailor installation accordingly. Because of rapid development of packages tensorflow and keras the current VAE code might become outdated any time soon. Efforts to mantain the VAE code cannot be guaranteed.
-VAE analyses could be lately run on python 3.10.11 (via reticulate::install_python) in this system
+VAE analyses could be lately run on python 3.10.11 (via reticulate::install_python) using this system
 
 ```
 sessionInfo()
