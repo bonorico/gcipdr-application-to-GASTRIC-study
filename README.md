@@ -30,9 +30,9 @@ other attached packages:
 
 ```
 
-Based on the above system info, you might want to install version specific packages with 
+Based on the above system info, you might want to install version specific packages like that
 
 ```
-remotes::install_version("ggplot2", version = "0.9.1", repos = "http://cran.us.r-project.org")
+remotes::install_version("keras", version = "2.15.0", repos = "http://cran.us.r-project.org")
 
 ```
