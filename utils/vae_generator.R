@@ -17,11 +17,26 @@ if (Sys.info()['sysname'] == "Windows") {
 
 } else {
   
+  if (!require("keras")) {
+  
+    install.packages("keras")
+    library(keras)
+
+  }
+  
+  if (!require("tensorflow")) {
+
+    install.packages("tensorflow")
+    library(tensorflow)
+
+  }
+  
   if (!require("reticulate")) {
 
     remotes::install_github("reticulate")
-    reticulate::install_python()
-    reticulate::virtualenv_create("r-venv", version = "3.10.14")
+    reticulate::install_python(version = "3.10.11")
+    install_keras(version = "2.16.0")
+    reticulate::virtualenv_create("r-venv", version = "3.10.11")
     
   }
 
@@ -42,21 +57,6 @@ tensorflow::as_tensor("Hello World")
 
 tensorflow::tf$constant("Hello TensorFlow!")
 
-if (!require("keras")) {
-  ## devtools::install_github("rstudio/keras")
-  install.packages("keras")
-  library(keras)
-  ## install_keras()
-}
-
-
-if (!require("tensorflow")) {
-
-  install.packages("tensorflow")
-  library(tensorflow)
- # tensorflow::install_tensorflow(envname = "r-tensorflow")
-
-}
 
 
 # update: code appears to be broken with later package release. See https://divingintogeneticsandgenomics.com/post/how-to-code-a-variational-autoencoder-vae-in-r-using-mnist-dataset/ for running the network
