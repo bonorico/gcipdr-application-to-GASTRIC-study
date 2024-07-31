@@ -41,7 +41,7 @@ madfs_1a <-  metagen(logHR, SDlogHR, trialID, madfs_dat, sm = "HR", comb.fixed =
 ### PRINT TABLE
 
 
-t_m_1a <- na.omit( do.call("rbind", lapply(RES_model_1a, function(m) do.call("cbind", lapply(m, function(d) do.call( "rbind", lapply(d$Bag, function(x) x )     ) )  )  ) ) )
+t_m_1a <-  do.call("rbind", lapply(RES_model_1a, function(m) do.call("cbind", lapply(m, function(d) do.call( "rbind", lapply(d$Bag, function(x) x )     ) )  )  ) )[row.names(t_m_1a) %in% c("coef", "sd", "lr", "df"), ]
            
 colnames(t_m_1a) <- names(RES_model_1a[[1]])
 
