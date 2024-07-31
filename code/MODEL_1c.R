@@ -31,12 +31,15 @@ RES_model_1c <- lapply(model_1c, function(m)
 
 ### PRINT TABLE
 
+t_m_1c0 <-  do.call("rbind", lapply(RES_model_1a, function(m) do.call("cbind", lapply(m, function(d) do.call( "rbind", lapply(d$Bag, function(x) x )     ) )  )  ) )
 
-t_m_1c <- na.omit( do.call("rbind", lapply(RES_model_1c, function(m) do.call("cbind", lapply(m, function(d) do.call( "rbind", lapply(d$Bag, function(x) x )     ) )  )  ) ) )
-           
-colnames(t_m_1c) <- names(RES_model_1c[[1]])
+colnames(t_m_1c0) <- names(RES_model_1a[[1]])
 
-t_m_1c <- data.frame("Out." = rep(names(RES_model_1c), rep(dim(t_m_1c)[1]/2, 2)), "Est." = rownames(t_m_1c), t_m_1c   )
+
+t_m_1c <- data.frame("Out." = rep(names(RES_model_1a), 
+                                  rep(dim(t_m_1c0[rownames(t_m_1c0) %in% c("coef", "sd", "lr", "df"), ])[1]/2, 2)), 
+                     "Est." = rownames(t_m_1c0)[rownames(t_m_1c0) %in% c("coef", "sd", "lr", "df")], 
+                     t_m_1c0[rownames(t_m_1c0) %in% c("coef", "sd", "lr", "df"), ]   )
 
 ## add beta z-test
 
