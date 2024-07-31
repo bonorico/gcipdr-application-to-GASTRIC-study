@@ -104,7 +104,7 @@ VAE <- function(x_train, H, epochs = 30L, repeat_data = 100, batch_split = 0.3){
     x_train <- as.matrix(x_train)
     orig_dim <- dim(x_train)  # original dimension
     
-    isbin <- apply(x_train, 2, is.binary)  # func 'is.binary' from gcipdr package
+    isbin <- apply(x_train, 2, gcipdr::is.binary)  # func 'is.binary' from gcipdr package
         
     x_train_augm <-  do.call("rbind", lapply(1:repeat_data, function(i){  ## data augmentation
         out <- as.data.frame(matrix( nrow= orig_dim[1], ncol = orig_dim[2] ))
@@ -169,7 +169,7 @@ logistic <- function(x) 1 / (1 + exp(-x))
 
 convert_binary <- function(x){
 
-   if (!is.binary(x))
+   if (!gcipdr::is.binary(x))
        stop("x must be binary")
 
     y <- x
