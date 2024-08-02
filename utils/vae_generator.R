@@ -1,20 +1,65 @@
+# install the development version of packages, in case the
+# issue is already fixed but not on CRAN yet.
 
 
-if (!require("keras")) {
-## devtools::install_github("rstudio/keras")
-install.packages("keras")
-library(keras)
-## install_keras()
+if (Sys.info()['sysname'] == "Windows") {
+  if (!require("keras") & !require("tensorflow") & !require("reticulate"))
+  {
+    install.packages("remotes")
+    remotes::install_github(sprintf("rstudio/%s", c("reticulate", "tensorflow", "keras")))
+    
+    reticulate::install_python(version = "3.10.11")
+    keras::install_keras(version = "2.16.0")
+    
+    # issues installing keras in windows. See : https://stackoverflow.com/questions/64774459/error-python-module-tensorflow-was-not-found-rstudio-windows10-path-problem
+    
+  }
+
+} else {
+  
+  if (!require("keras")) {
+  
+    install.packages("keras")
+    library(keras)
+
+  }
+  
+  if (!require("tensorflow")) {
+
+    install.packages("tensorflow")
+    library(tensorflow)
+
+  }
+  
+  if (!require("reticulate")) {
+
+    remotes::install_github("reticulate")
+    reticulate::install_python(version = "3.10.11")
+    install_keras(version = "2.16.0")
+    reticulate::virtualenv_create("r-venv", version = "3.10.11")
+    
+  }
+
 }
 
+if (Sys.info()['sysname'] != "Windows"){
+  
+  reticulate::use_virtualenv("~/.virtualenvs/r-keras/", required = TRUE)
+  reticulate::py_config()
+  
+} else {
+  
+  reticulate::use_virtualenv("r-tensorflow")
+  reticulate::py_config()
+}
 
-if (!require("tensorflow")) {
-install.packages("tensorflow")
-library(tensorflow)
-install_tensorflow()
-} 
+tensorflow::as_tensor("Hello World")
+
+tensorflow::tf$constant("Hello TensorFlow!")
 
 
+
+# update: code appears to be broken with later package release. See https://divingintogeneticsandgenomics.com/post/how-to-code-a-variational-autoencoder-vae-in-r-using-mnist-dataset/ for running the network
 
 ### code based on: https://github.com/rstudio/keras/blob/master/vignettes/examples/variational_autoencoder.R
 
@@ -31,7 +76,7 @@ tensorflow::tf$random$set_seed(0)  # temporary solution to make VAE results repr
 
 K <- keras::backend()
 
-     
+
 # Parameters --------------------------------------------------------------
 
 original_dim <- 5L
@@ -51,18 +96,18 @@ z_log_var <- layer_dense(h, latent_dim)
 sampling <- function(arg){
   z_mean <- arg[, 1:(latent_dim)]
   z_log_var <- arg[, (latent_dim + 1):(2 * latent_dim)]
-  
+
   epsilon <- k_random_normal(
-    shape = c(k_shape(z_mean)[[1]]), 
+    shape = c(k_shape(z_mean)[[1]]),
     mean=0.,
     stddev=epsilon_std
   )
-  
+
   z_mean + k_exp(z_log_var/2)*epsilon
 }
 
 # note that "output_shape" isn't necessary with the TensorFlow backend
-z <- layer_concatenate(list(z_mean, z_log_var)) %>% 
+z <- layer_concatenate(list(z_mean, z_log_var)) %>%
   layer_lambda(sampling)
 
 # we instantiate these layers separately so as to reuse them later
@@ -76,7 +121,7 @@ x_decoded_mean <- decoder_mean(h_decoded)
 
 ## define decoding layers .... for the generator (note difference with above)
 decoder_input <- layer_input(shape = latent_dim)
-h_decoded_2 <- decoder_h(decoder_input) 
+h_decoded_2 <- decoder_h(decoder_input)
 x_decoded_mean_2 <- decoder_mean(h_decoded_2)
 
 
@@ -99,7 +144,10 @@ vae_loss <- function(x, x_decoded_mean){
   xent_loss + kl_loss
 }
 
-vae %>% compile(optimizer = "rmsprop", loss = vae_loss)
+vae %>%
+  compile(
+    optimizer = "rmsprop",
+    loss = vae_loss)
 
 
 #####################################################################
@@ -110,8 +158,8 @@ VAE <- function(x_train, H, epochs = 30L, repeat_data = 100, batch_split = 0.3)
 {
     names <- colnames(x_train)
     x_train <- as.matrix(x_train)
-    orig_dim <- dim(x_train)  # original dimension    
-    isbin <- apply(x_train, 2, is.binary)  # func 'is.binary' from gcipdr package
+    orig_dim <- dim(x_train)  # original dimension
+    isbin <- apply(x_train, 2, gcipdr::is.binary)  # func 'is.binary' from gcipdr package
     x_train_augm <-  do.call(
         "rbind",
         lapply(1:repeat_data, function(i){  ## data augmentation
@@ -129,7 +177,7 @@ VAE <- function(x_train, H, epochs = 30L, repeat_data = 100, batch_split = 0.3)
     )
     examples_dim <- dim(x_train_augm)[1]   # dimension of augmented examples
     batch_size <- ifelse(examples_dim < 800, round(examples_dim*batch_split, 0), 100L)
-    x_train_augm <- as.matrix(x_train_augm)   
+    x_train_augm <- as.matrix(x_train_augm)
 
 
                                         # Model training ----------------------------------------------------------
@@ -170,7 +218,7 @@ logistic <- function(x) 1 / (1 + exp(-x))
 
 convert_binary <- function(x){
 
-   if (!is.binary(x))
+   if (!gcipdr::is.binary(x))
        stop("x must be binary")
     y <- x
     y <- ifelse( y < 1, runif(1, 0, 0.5), runif(1, 0.525, 1) )

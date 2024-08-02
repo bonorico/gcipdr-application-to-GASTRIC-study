@@ -41,11 +41,15 @@ madfs_1a <-  metagen(logHR, SDlogHR, trialID, madfs_dat, sm = "HR", comb.fixed =
 ### PRINT TABLE
 
 
-t_m_1a <- na.omit( do.call("rbind", lapply(RES_model_1a, function(m) do.call("cbind", lapply(m, function(d) do.call( "rbind", lapply(d$Bag, function(x) x )     ) )  )  ) ) )
+t_m_1a0 <-  do.call("rbind", lapply(RES_model_1a, function(m) do.call("cbind", lapply(m, function(d) do.call( "rbind", lapply(d$Bag, function(x) x )     ) )  )  ) )
            
-colnames(t_m_1a) <- names(RES_model_1a[[1]])
+colnames(t_m_1a0) <- names(RES_model_1a[[1]])
 
-t_m_1a <- data.frame("Out." = rep(names(RES_model_1a), rep(dim(t_m_1a)[1]/2, 2)), "Est." = rownames(t_m_1a), t_m_1a   )
+
+t_m_1a <- data.frame("Out." = rep(names(RES_model_1a), 
+                                  rep(dim(t_m_1a0[rownames(t_m_1a0) %in% c("coef", "sd", "lr", "df"), ])[1]/2, 2)), 
+                     "Est." = rownames(t_m_1a0)[rownames(t_m_1a0) %in% c("coef", "sd", "lr", "df")], 
+                     t_m_1a0[rownames(t_m_1a0) %in% c("coef", "sd", "lr", "df"), ]   )
 
 t_m_1a$"fixedMA" <- c(maos_1a$TE.fixed, maos_1a$seTE.fixed, NA, NA, madfs_1a$TE.fixed, madfs_1a$seTE.fixed, NA, NA)
 

@@ -1,4 +1,4 @@
-## main.R contains R commands to execute 'gcipdr application to GASTRIC group meta-analysis' (from homonymous repository). 
+## main.R contains R commands to execute 'gcipdr application to GASTRIC group meta-analysis' (from homonymous repository).
 ## Copyright (C) 2021 Federico Bonofiglio
 
     ## This Program is free software: you can redistribute it and/or modify
@@ -17,8 +17,6 @@
 
 source("load_dependencies.R")
 
-source("utils/vae_generator.R")  ## R 4.02: Error: Installation of TensorFlow not found. RE-RUN
-
 options(mc.cores = 3L)   # to increase parallel cores
 
 ## to locate warning: options(warn = 2) ## default warn = 0
@@ -34,26 +32,26 @@ if( !any( as.numeric(table(gastadj$patientID)) > 1) ){
     print("There are patients with multple obss. Keeping var 'patientID'")
   }
 
-  gastadj[, c(3,5)] <-  (gastadj[, c(3,5)]/365)*12  # monthly time scale CORRECT 
+  gastadj[, c(3,5)] <-  (gastadj[, c(3,5)]/365)*12  # monthly time scale CORRECT
 
   trialnames <- levels(as.factor(gastadj$trialID))
 
 
-## BLOCK 2 ##### EXTRACT key IPD summaries 
+## BLOCK 2 ##### EXTRACT key IPD summaries
 
 trial_summaries <- lapply(trialnames, function(s){
 
   dat <- subset(gastadj, subset = trialID == s, select = -1)
-    
+
     datin <- Return.key.IPD.summaries( Return.IPD.design.matrix(dat) )
 
     return(list( moms = datin$first.four.moments, corr = datin$correlation.matrix,
       N = datin$sample.size, supp = datin$is.binary.variable, names = datin$variable.names ))
-       
+
        }  ); names(trial_summaries) <- trialnames
 
 
-## BLOCK 3 ##### PSEUDODATA ##################### 
+## BLOCK 3 ##### PSEUDODATA #####################
 
 H <- 300  # set simulation size
 
@@ -67,17 +65,17 @@ artds <- GC_pseudodata()
 
 ## BLOCK 5 ###### CHECK AND CORRECT GC PSEUDODATA
 
-source("code/inspect_GC_pseudodata.R", echo = T)  
+source("code/inspect_GC_pseudodata.R", echo = T)
 
 ## BLOCK 6 ######## COMPARATIVE PSEUDODATA METHODS (both disclosive and not)
 
-source("code/other_pseudodata_methods.R", echo = T)  
+source("code/other_pseudodata_methods.R", echo = T)
 
 ### all data in a list (convenient to run models in loop)
 
 pd <- list("IPD" = list(gastadj[, c(2:6, 1)]),
            "IPDboot" = lapply(bootres, function(x) x[, c(2:6, 1)]),
-           "Distboot" = bootresDist,   
+           "Distboot" = bootresDist,
            "CART" = pool.synpdat,
            "VAE" = pool.vaedat,
            "GC_few" = poolartd$gamma,
@@ -119,18 +117,18 @@ source("code/MODEL_1g.R", echo = T)
 
 source("code/MODEL_1h.R", echo = T)
 
-## BLOCK 10 #### ORIGINAL IPD KM ANALYSES  
-  
+## BLOCK 10 #### ORIGINAL IPD KM ANALYSES
+
 source("code/IPD_KM.R", echo = T)
 source("code/IPD_KM_plots.R", echo = T)  ## plot curves
 
 ## BLOCK 11 #### CENTER-SPECIFIC BASELINE HAZARDS (CENTER EFFECT)
 
 source("code/compute_center_KMs_trt.R", echo = T)  ### center effect on KM under trt
-source("code/compute_center_BHs.R", echo = T)  ### BH proportionality 
+source("code/compute_center_BHs.R", echo = T)  ### BH proportionality
 
 pdf(file.path(outfolder, "KM_trt_BH_centers_plot_death_John.eps"), width = 10.4, height = 12.4)
-plot_grid(main3, main4, labels="AUTO", nrow = 2, rel_heights = c(1.2, 1)) 
+plot_grid(main3, main4, labels="AUTO", nrow = 2, rel_heights = c(1.2, 1))
 dev.off()
 ## BLOCK 12 ######## SUBGROUP ANALYSIS #########
 
@@ -164,12 +162,12 @@ all_tabs <- list(
 )
 
 
-source("code/main_result_graphical.R")  # regression results synopsis (a high level synthesis) 
+source("code/main_result_graphical.R")  # regression results synopsis (a high level synthesis)
 
 all_tabs$regr_synops <- list("raw"= regr_synops, "latex" = regr_synops_mr )
 all_tabs$km_synops <- list("raw"= km_synops_out, "latex" = km_synops_out_mr )
 
-saveRDS(all_tabs, file.path(outfolder, "all_tabs.rds")) 
+saveRDS(all_tabs, file.path(outfolder, "all_tabs.rds"))
 
 
 
