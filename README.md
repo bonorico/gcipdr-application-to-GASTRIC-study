@@ -1,6 +1,6 @@
 # gcipdr-application-to-GASTRIC-study
 
-Run file "main.R" for main analysis. Note that surrogacy analyses (model 1h) might take up to 3 minutes for a single data repetition, that is up to 35 hours for all data generation methods.
+Run file "main.R" for main analysis. Note that [surrogacy analyses](https://github.com/bonorico/gcipdr-application-to-GASTRIC-study/blob/checkup/code/MODEL_1h.R) might take up to 3 minutes for a single data repetition, that is up to 35 hours for all data generation methods.
 
 Run files "sim_study*.R" for simulation analyses (beware each file can take up to 24 hours to execute on 2 cores). Simulations were made with R 3.6.3 under a Linux 5.4.0-81-generic 18.04.1-Ubuntu system on a Intel(R) Core(TM) i7-2640M CPU @ 2.80GHz machine.  
 
